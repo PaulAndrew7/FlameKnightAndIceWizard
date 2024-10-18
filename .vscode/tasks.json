@@ -10,24 +10,23 @@
             "args": [
                 "PLATFORM=PLATFORM_DESKTOP",
                 "BUILD_MODE=DEBUG",
-                "PROJECT_NAME=flameknightandicewizard",
-                "OBJS=flameknightandicewizard.c"
+                "PROJECT_NAME=${fileBasenameNoExtension}",
+                "OBJS=${fileBasenameNoExtension}.c"
             ],
             "windows": {
                 "command": "mingw32-make.exe",
                 "args": [
-                    "-f ../../src/Makefile",
-                    "RAYLIB_SRC_PATH=C:/raylib/raylib",
-                    "PROJECT_NAME=flameknightandicewizard",
-                    "OBJS=flameknightandicewizard.c",
+                    "RAYLIB_PATH=C:/raylib/raylib",
+                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "OBJS=${fileBasenameNoExtension}.c",
                     "BUILD_MODE=DEBUG"
                 ],
             },
             "osx": {
                 "args": [
-                    "RAYLIB_SRC_PATH=C:/raylib/raylib",
-                    "PROJECT_NAME=flameknightandicewizard",
-                    "OBJS=flameknightandicewizard.c",
+                    "RAYLIB_PATH=<path_to_raylib>/raylib",
+                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "OBJS=${fileBasenameNoExtension}.c",
                     "BUILD_MODE=DEBUG"
                 ],
             },
@@ -35,6 +34,9 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "problemMatcher": [
+                "$gcc"
+            ]
         },
         {
             "label": "build release",
@@ -42,26 +44,28 @@
             "command": "make",
             "args": [
                 "PLATFORM=PLATFORM_DESKTOP",
-                "PROJECT_NAME=flameknightandicewizard",
-                "OBJS=flameknightandicewizard.c"
+                "PROJECT_NAME=${fileBasenameNoExtension}",
+                "OBJS=${fileBasenameNoExtension}.c"
             ],
             "windows": {
                 "command": "mingw32-make.exe",
                 "args": [
-                    "-f ../../src/Makefile",
-                    "RAYLIB_SRC_PATH=C:\raylib\raylib\src",
-                    "PROJECT_NAME=flameknightandicewizard",
-                    "OBJS=flameknightandicewizard.c"
+                    "RAYLIB_PATH=C:/raylib/raylib",
+                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "OBJS=${fileBasenameNoExtension}.c"
                 ],
             },
             "osx": {
                 "args": [
-                    "RAYLIB_SRC_PATH=C:\raylib\raylib\src",
-                    "PROJECT_NAME=flameknightandicewizard",
-                    "OBJS=flameknightandicewizard.c"
+                    "RAYLIB_PATH=<path_to_raylib>/raylib",
+                    "PROJECT_NAME=${fileBasenameNoExtension}",
+                    "OBJS=${fileBasenameNoExtension}.c"
                 ],
             },
             "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
         }
     ]
 }
