@@ -1,108 +1,110 @@
-/*******************************************************************************************
-*
-*   raylib [core] example - Basic 3d example
-*
-*   Welcome to raylib!
-*
-*   To compile example, just press F5.
-*   Note that compiled executable is placed in the same folder as .c file
-*
-*   You can find all basic examples on C:\raylib\raylib\examples folder or
-*   raylib official webpage: www.raylib.com
-*
-*   Enjoy using raylib. :)
-*
-*   This example has been created using raylib 1.0 (www.raylib.com)
-*   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
-*
-*   Copyright (c) 2013-2023 Ramon Santamaria (@raysan5)
-*
-********************************************************************************************/
-
 #include "raylib.h"
 
-#if defined(PLATFORM_WEB)
-    #include <emscripten/emscripten.h>
-#endif
+#define MAX_PLATFORMS 10
 
-//----------------------------------------------------------------------------------
-// Local Variables Definition (local to this module)
-//----------------------------------------------------------------------------------
-Camera camera = { 0 };
-Vector3 cubePosition = { 0 };
+typedef struct Player {
+    Vector2 position;
+    Vector2 size;
+    Vector2 speed;
+    Color color;
+} Player;
 
-//----------------------------------------------------------------------------------
-// Local Functions Declaration
-//----------------------------------------------------------------------------------
-static void UpdateDrawFrame(void);          // Update and draw one frame
+typedef struct Platform {
+    Rectangle rect;
+    Color color;
+} Platform;
 
-//----------------------------------------------------------------------------------
-// Main entry point
-//----------------------------------------------------------------------------------
-int main()
-{
-    // Initialization
-    //--------------------------------------------------------------------------------------
+void MovePlayer(Player *player, bool isFireboy);
+
+bool CheckCollisionPlayerPlatform(Player *player, Platform *platform);
+
+int main(void) {
     const int screenWidth = 800;
-    const int screenHeight = 450;
+    const int screenHeight = 600;
+    
+    InitWindow(screenWidth, screenHeight, "Fireboy and Watergirl - Simple Version");
 
-    InitWindow(screenWidth, screenHeight, "raylib");
+    // Define Fireboy
+    Player fireboy = {{100, screenHeight - 50}, {40, 60}, {0, 0}, RED};
 
-    camera.position = (Vector3){ 10.0f, 10.0f, 8.0f };
-    camera.target = (Vector3){ 0.0f, 0.0f, 0.0f };
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
-    camera.fovy = 60.0f;
-    camera.projection = CAMERA_PERSPECTIVE;
+    // Define Watergirl
+    Player watergirl = {{200, screenHeight - 50}, {40, 60}, {0, 0}, BLUE};
 
-    //--------------------------------------------------------------------------------------
+    // Platforms
+    Platform platforms[MAX_PLATFORMS] = {
+        {{0, screenHeight - 20, screenWidth, 20}, DARKGRAY}, // Ground
+        {{150, 450, 200, 20}, DARKGRAY},
+        {{400, 350, 200, 20}, DARKGRAY},
+        {{650, 250, 100, 20}, DARKGRAY}
+    };
 
-#if defined(PLATFORM_WEB)
-    emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
-#else
-    SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
-    //--------------------------------------------------------------------------------------
+    const int platformCount = 4;
 
-    // Main game loop
-    while (!WindowShouldClose())    // Detect window close button or ESC key
-    {
-        UpdateDrawFrame();
+    SetTargetFPS(60);
+
+    while (!WindowShouldClose()) {
+        // Move Fireboy and Watergirl
+        MovePlayer(&fireboy, true);
+        MovePlayer(&watergirl, false);
+
+        // Gravity and collision with platforms for Fireboy
+        fireboy.speed.y += 0.5; // Simple gravity
+        for (int i = 0; i < platformCount; i++) {
+            if (CheckCollisionPlayerPlatform(&fireboy, &platforms[i])) {
+                fireboy.speed.y = 0;
+                fireboy.position.y = platforms[i].rect.y - fireboy.size.y;
+            }
+        }
+
+        // Gravity and collision with platforms for Watergirl
+        watergirl.speed.y += 0.5; // Simple gravity
+        for (int i = 0; i < platformCount; i++) {
+            if (CheckCollisionPlayerPlatform(&watergirl, &platforms[i])) {
+                watergirl.speed.y = 0;
+                watergirl.position.y = platforms[i].rect.y - watergirl.size.y;
+            }
+        }
+
+        // Draw
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        // Draw Platforms
+        for (int i = 0; i < platformCount; i++) {
+            DrawRectangleRec(platforms[i].rect, platforms[i].color);
+        }
+
+        // Draw Fireboy and Watergirl
+        DrawRectangleV(fireboy.position, fireboy.size, fireboy.color);
+        DrawRectangleV(watergirl.position, watergirl.size, watergirl.color);
+
+        EndDrawing();
     }
-#endif
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    CloseWindow();                  // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
+    CloseWindow();
 
     return 0;
 }
 
-// Update and draw game frame
-static void UpdateDrawFrame(void)
-{
-    // Update
-    //----------------------------------------------------------------------------------
-    UpdateCamera(&camera, CAMERA_ORBITAL);
-    //----------------------------------------------------------------------------------
+void MovePlayer(Player *player, bool isFireboy) {
+    // Fireboy controls (WASD)
+    if (isFireboy) {
+        if (IsKeyDown(KEY_A)) player->position.x -= 4;
+        if (IsKeyDown(KEY_D)) player->position.x += 4;
+        if (IsKeyDown(KEY_W) && player->speed.y == 0) player->speed.y = -10;
+    }
+    // Watergirl controls (Arrow Keys)
+    else {
+        if (IsKeyDown(KEY_LEFT)) player->position.x -= 4;
+        if (IsKeyDown(KEY_RIGHT)) player->position.x += 4;
+        if (IsKeyDown(KEY_UP) && player->speed.y == 0) player->speed.y = -10;
+    }
 
-    // Draw
-    //----------------------------------------------------------------------------------
-    BeginDrawing();
+    // Update position based on speed
+    player->position.y += player->speed.y;
+}
 
-        ClearBackground(RAYWHITE);
-
-        BeginMode3D(camera);
-
-            DrawCube(cubePosition, 2.0f, 2.0f, 2.0f, RED);
-            DrawCubeWires(cubePosition, 2.0f, 2.0f, 2.0f, MAROON);
-            DrawGrid(10, 1.0f);
-
-        EndMode3D();
-
-        DrawText("This is a raylib example", 10, 40, 20, DARKGRAY);
-
-        DrawFPS(10, 10);
-
-    EndDrawing();
-    //----------------------------------------------------------------------------------
+bool CheckCollisionPlayerPlatform(Player *player, Platform *platform) {
+    Rectangle playerRect = {player->position.x, player->position.y, player->size.x, player->size.y};
+    return CheckCollisionRecs(playerRect, platform->rect);
 }
