@@ -22,7 +22,7 @@ int main(void) {
     const int screenWidth = 800;
     const int screenHeight = 600;
     
-    InitWindow(screenWidth, screenHeight, "Fireboy and Watergirl - Simple Version");
+    InitWindow(screenWidth, screenHeight, "Flame Knight And Ice Wizard");
 
     // Define Fireboy
     Player fireboy = {{100, screenHeight - 50}, {40, 60}, {0, 0}, RED};
@@ -88,7 +88,7 @@ int main(void) {
 
 void MovePlayer(Player *player, bool isFireboy) {
     // Fireboy controls (WASD)
-    if (isFireboy) {
+    if (isFireboy) { 
         if (IsKeyDown(KEY_A)) player->position.x -= 4;
         if (IsKeyDown(KEY_D)) player->position.x += 4;
         if (IsKeyDown(KEY_W) && player->speed.y == 0) player->speed.y = -10;
