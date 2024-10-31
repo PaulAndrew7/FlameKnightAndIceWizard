@@ -7,6 +7,8 @@ typedef struct Player {
     Vector2 size;
     Vector2 speed;
     Color color;
+    bool canJump;
+    float jumpTimer;
 } Player;
 
 typedef struct Platform {
@@ -14,97 +16,119 @@ typedef struct Platform {
     Color color;
 } Platform;
 
-void MovePlayer(Player *player, bool isFireboy);
-
-bool CheckCollisionPlayerPlatform(Player *player, Platform *platform);
+void MovePlayer(Player *player, bool isFlameKnight);
+void HandlePlatformCollision(Player *player, Platform *platform);
 
 int main(void) {
     const int screenWidth = 800;
     const int screenHeight = 600;
-    
+
     InitWindow(screenWidth, screenHeight, "Flame Knight And Ice Wizard");
 
-    // Define Fireboy
-    Player fireboy = {{100, screenHeight - 50}, {40, 60}, {0, 0}, RED};
+    Player flameKnight = {{100, 500}, {40, 60}, {0, 0}, ORANGE, true, 0.0f};
+    Player iceWizard = {{200, 500}, {40, 60}, {0, 0}, SKYBLUE, true, 0.0f};
 
-    // Define Watergirl
-    Player watergirl = {{200, screenHeight - 50}, {40, 60}, {0, 0}, BLUE};
-
-    // Platforms
     Platform platforms[MAX_PLATFORMS] = {
-        {{0, screenHeight - 20, screenWidth, 20}, DARKGRAY}, // Ground
+        {{0, 580, 800, 20}, DARKGRAY},
         {{150, 450, 200, 20}, DARKGRAY},
         {{400, 350, 200, 20}, DARKGRAY},
         {{650, 250, 100, 20}, DARKGRAY}
     };
-
     const int platformCount = 4;
 
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
-        // Move Fireboy and Watergirl
-        MovePlayer(&fireboy, true);
-        MovePlayer(&watergirl, false);
+        MovePlayer(&flameKnight, true);
+        MovePlayer(&iceWizard, false);
 
-        // Gravity and collision with platforms for Fireboy
-        fireboy.speed.y += 0.5; // Simple gravity
+        flameKnight.speed.y += 0.5; // Gravity
+        iceWizard.speed.y += 0.5;
+
         for (int i = 0; i < platformCount; i++) {
-            if (CheckCollisionPlayerPlatform(&fireboy, &platforms[i])) {
-                fireboy.speed.y = 0;
-                fireboy.position.y = platforms[i].rect.y - fireboy.size.y;
-            }
+            HandlePlatformCollision(&flameKnight, &platforms[i]);
+            HandlePlatformCollision(&iceWizard, &platforms[i]);
         }
 
-        // Gravity and collision with platforms for Watergirl
-        watergirl.speed.y += 0.5; // Simple gravity
-        for (int i = 0; i < platformCount; i++) {
-            if (CheckCollisionPlayerPlatform(&watergirl, &platforms[i])) {
-                watergirl.speed.y = 0;
-                watergirl.position.y = platforms[i].rect.y - watergirl.size.y;
-            }
-        }
+        // Keep characters within screen bounds
+        if (flameKnight.position.x < 0) flameKnight.position.x = 0;
+        if (flameKnight.position.x > screenWidth - flameKnight.size.x) flameKnight.position.x = screenWidth - flameKnight.size.x;
+        if (iceWizard.position.x < 0) iceWizard.position.x = 0;
+        if (iceWizard.position.x > screenWidth - iceWizard.size.x) iceWizard.position.x = screenWidth - iceWizard.size.x;
 
-        // Draw
+        flameKnight.jumpTimer += GetFrameTime();
+        iceWizard.jumpTimer += GetFrameTime();
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        // Draw Platforms
         for (int i = 0; i < platformCount; i++) {
             DrawRectangleRec(platforms[i].rect, platforms[i].color);
         }
 
-        // Draw Fireboy and Watergirl
-        DrawRectangleV(fireboy.position, fireboy.size, fireboy.color);
-        DrawRectangleV(watergirl.position, watergirl.size, watergirl.color);
+        DrawRectangleV(flameKnight.position, flameKnight.size, flameKnight.color);
+        DrawRectangleV(iceWizard.position, iceWizard.size, iceWizard.color);
 
         EndDrawing();
     }
 
     CloseWindow();
-
     return 0;
 }
 
-void MovePlayer(Player *player, bool isFireboy) {
-    // Fireboy controls (WASD)
-    if (isFireboy) { 
+void MovePlayer(Player *player, bool isFlameKnight) {
+    if (isFlameKnight) {
         if (IsKeyDown(KEY_A)) player->position.x -= 4;
         if (IsKeyDown(KEY_D)) player->position.x += 4;
-        if (IsKeyDown(KEY_W) && player->speed.y == 0) player->speed.y = -10;
-    }
-    // Watergirl controls (Arrow Keys)
-    else {
+        if (IsKeyDown(KEY_W) && player->canJump && player->jumpTimer >= 0.5f) {
+            player->speed.y = -10;
+            player->canJump = false;
+            player->jumpTimer = 0.0f;
+        }
+    } else {
         if (IsKeyDown(KEY_LEFT)) player->position.x -= 4;
         if (IsKeyDown(KEY_RIGHT)) player->position.x += 4;
-        if (IsKeyDown(KEY_UP) && player->speed.y == 0) player->speed.y = -10;
+        if (IsKeyDown(KEY_UP) && player->canJump && player->jumpTimer >= 0.5f) {
+            player->speed.y = -10;
+            player->canJump = false;
+            player->jumpTimer = 0.0f;
+        }
     }
-
-    // Update position based on speed
     player->position.y += player->speed.y;
 }
 
-bool CheckCollisionPlayerPlatform(Player *player, Platform *platform) {
+void HandlePlatformCollision(Player *player, Platform *platform) {
     Rectangle playerRect = {player->position.x, player->position.y, player->size.x, player->size.y};
-    return CheckCollisionRecs(playerRect, platform->rect);
+
+    if (CheckCollisionRecs(playerRect, platform->rect)) {
+        // Calculate the depth of overlap on each side
+        float overlapTop = player->position.y + player->size.y - platform->rect.y;
+        float overlapBottom = platform->rect.y + platform->rect.height - player->position.y;
+        float overlapLeft = player->position.x + player->size.x - platform->rect.x;
+        float overlapRight = platform->rect.x + platform->rect.width - player->position.x;
+
+        // Resolve collision by moving player out of platform in the smallest overlap direction
+        if (overlapTop < overlapBottom && overlapTop < overlapLeft && overlapTop < overlapRight) {
+            // Top collision (player hits the top of the platform)
+            player->position.y = platform->rect.y - player->size.y;
+            player->speed.y = 0;
+            player->canJump = true;
+        } 
+        else if (overlapBottom < overlapTop && overlapBottom < overlapLeft && overlapBottom < overlapRight) {
+            // Bottom collision (player hits the bottom of the platform)
+            player->position.y = platform->rect.y + platform->rect.height;
+            player->speed.y = 0;
+        } 
+        else if (overlapLeft < overlapRight) {
+            // Left collision (player hits the left side of the platform)
+            player->position.x = platform->rect.x - player->size.x;
+            player->speed.x = 0;
+        } 
+        else {
+            // Right collision (player hits the right side of the platform)
+            player->position.x = platform->rect.x + platform->rect.width;
+            player->speed.x = 0;
+        }
+    }
 }
+
