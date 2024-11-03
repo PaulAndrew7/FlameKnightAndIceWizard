@@ -36,15 +36,34 @@ int main(void) {
     };
     const int platformCount = 4;
 
+    // Define goals
+    Rectangle redGoal = {750, 100, 30, 80};   // Goal for Flame Knight
+    Rectangle blueGoal = {720, 100, 30, 80};  // Goal for Ice Wizard
+
+    bool flameKnightReachedGoal = false;
+    bool iceWizardReachedGoal = false;
+
+    // Create player rectangles for reuse
+    Rectangle flameKnightRect = {flameKnight.position.x, flameKnight.position.y, flameKnight.size.x, flameKnight.size.y};
+    Rectangle iceWizardRect = {iceWizard.position.x, iceWizard.position.y, iceWizard.size.x, iceWizard.size.y};
+
     SetTargetFPS(60);
 
     while (!WindowShouldClose()) {
+        // Update player positions and handle movement
         MovePlayer(&flameKnight, true);
         MovePlayer(&iceWizard, false);
 
         flameKnight.speed.y += 0.5; // Gravity
         iceWizard.speed.y += 0.5;
 
+        // Update player rectangles based on current positions
+        flameKnightRect.x = flameKnight.position.x;
+        flameKnightRect.y = flameKnight.position.y;
+        iceWizardRect.x = iceWizard.position.x;
+        iceWizardRect.y = iceWizard.position.y;
+
+        // Handle platform collisions
         for (int i = 0; i < platformCount; i++) {
             HandlePlatformCollision(&flameKnight, &platforms[i]);
             HandlePlatformCollision(&iceWizard, &platforms[i]);
@@ -59,15 +78,30 @@ int main(void) {
         flameKnight.jumpTimer += GetFrameTime();
         iceWizard.jumpTimer += GetFrameTime();
 
+        // Check if players reached their goals using updated rectangles
+        flameKnightReachedGoal = CheckCollisionRecs(flameKnightRect, redGoal);
+        iceWizardReachedGoal = CheckCollisionRecs(iceWizardRect, blueGoal);
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
+        // Draw platforms
         for (int i = 0; i < platformCount; i++) {
             DrawRectangleRec(platforms[i].rect, platforms[i].color);
         }
 
-        DrawRectangleV(flameKnight.position, flameKnight.size, flameKnight.color);
-        DrawRectangleV(iceWizard.position, iceWizard.size, iceWizard.color);
+        // Draw players using their rectangles
+        DrawRectangleRec(flameKnightRect, flameKnight.color);
+        DrawRectangleRec(iceWizardRect, iceWizard.color);
+
+        // Draw goals
+        DrawRectangleRec(redGoal, RED);
+        DrawRectangleRec(blueGoal, BLUE);
+
+        // Game over condition
+        if (flameKnightReachedGoal && iceWizardReachedGoal) {
+            DrawText("Level Complete!", screenWidth / 2 - 100, screenHeight / 2, 20, GREEN);
+        }
 
         EndDrawing();
     }
@@ -131,4 +165,3 @@ void HandlePlatformCollision(Player *player, Platform *platform) {
         }
     }
 }
-
