@@ -1,7 +1,8 @@
 import pyray as rl
+import json
 from raylib.colors import *
 
-MAX_PLATFORMS = 10
+MAX_PLATFORMS = 20
 
 class Player:
     def __init__(self, position, size, color):
@@ -63,29 +64,54 @@ def handle_platform_collision(player, platform):
             player.speed.x = 0
 
 
+# Screen setup
 screen_width = 800
 screen_height = 600
 rl.init_window(screen_width, screen_height, "Flame Knight And Ice Wizard")
 
-flame_knight = Player(rl.Vector2(100, 500), rl.Vector2(40, 60), ORANGE)
-ice_wizard = Player(rl.Vector2(200, 500), rl.Vector2(40, 60), SKYBLUE)
-platforms = [
-Platform(rl.Rectangle(0, 580, 800, 20), DARKGRAY),
-    Platform(rl.Rectangle(150, 450, 200, 20), DARKGRAY),
-    Platform(rl.Rectangle(400, 350, 200, 20), DARKGRAY),
-    Platform(rl.Rectangle(650, 250, 100, 20), DARKGRAY)
-]
-red_goal = rl.Rectangle(750, 100, 30, 80)
-blue_goal = rl.Rectangle(720, 100, 30, 80)
+# Players setup
+flame_knight = Player(rl.Vector2(100, 500), rl.Vector2(20, 35), ORANGE)
+ice_wizard = Player(rl.Vector2(200, 500), rl.Vector2(20, 35), SKYBLUE)
 
+# Load the JSON level file
+with open('map/level1.json', 'r') as f:
+    level_data = json.load(f)
+
+# Extract the foreground layer (assuming it's the second layer in the JSON)
+foreground_layer = level_data['layers'][1]  # Adjust index based on your JSON structure
+
+# Tile size (adjust to your actual tile size)
+tile_width = 25
+tile_height = 25
+
+# Create platforms based on the foreground layer (tiles with value != 0)
+platforms = []
+for y in range(foreground_layer['height']):
+    for x in range(foreground_layer['width']):
+        tile_id = foreground_layer['data'][y * foreground_layer['width'] + x]
+        if tile_id != 0:  # Non-zero value means a tile is present here
+            platform_rect = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+            platform_color = DARKGRAY  # Default color for the platforms
+            platforms.append(Platform(platform_rect, platform_color))
+
+# Goal areas
+red_goal = rl.Rectangle(670, 80, 20, 20)
+blue_goal = rl.Rectangle(725, 80, 20, 20)
+
+# Flags to check if players reached the goal
 flame_knight_reached_goal = False
 ice_wizard_reached_goal = False
 
+# Set the target FPS
 rl.set_target_fps(60)
 
+# Game loop
 while not rl.window_should_close():
     move_player(flame_knight, True)
     move_player(ice_wizard, False)
+
+    mouse_x, mouse_y = rl.get_mouse_x(), rl.get_mouse_y()
+    rl.draw_text(f"X: {mouse_x} Y: {mouse_y}", mouse_x + 10, mouse_y + 10, 10, rl.RED)
 
     flame_knight.speed.y += 0.5
     ice_wizard.speed.y += 0.5
@@ -109,20 +135,23 @@ while not rl.window_should_close():
     rl.begin_drawing()
     rl.clear_background(RAYWHITE)
 
+    # Draw the level platforms created from the JSON data
     for platform in platforms:
         rl.draw_rectangle_rec(platform.rect, platform.color)
 
+    # Draw players
     rl.draw_rectangle_rec(flame_knight_rect, flame_knight.color)
     rl.draw_rectangle_rec(ice_wizard_rect, ice_wizard.color)
 
+    # Draw the goals
     rl.draw_rectangle_rec(red_goal, RED)
     rl.draw_rectangle_rec(blue_goal, BLUE)
 
+    # Display message if both players reached their goals
     if flame_knight_reached_goal and ice_wizard_reached_goal:
         rl.draw_text("Level Complete!", screen_width // 2 - 100, screen_height // 2, 20, GREEN)
 
     rl.end_drawing()
 
+# Close window
 rl.close_window()
-
-
