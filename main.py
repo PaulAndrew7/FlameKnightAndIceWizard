@@ -94,9 +94,24 @@ for y in range(foreground_layer['height']):
             platform_color = DARKGRAY  # Default color for the platforms
             platforms.append(Platform(platform_rect, platform_color))
 
-# Goal areas
-red_goal = rl.Rectangle(670, 80, 20, 20)
-blue_goal = rl.Rectangle(725, 80, 20, 20)
+# Defining Goals
+flame_goal_layer = level_data['layers'][5]
+for y in range(flame_goal_layer['height']):
+    for x in range(flame_goal_layer['width']):
+        tile_id = flame_goal_layer['data'][y * flame_goal_layer['width'] + x]
+        if tile_id != 0:  # Non-zero value means a tile is present here
+            red_goal = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+
+ice_goal_layer = level_data['layers'][6]
+for y in range(ice_goal_layer['height']):
+    for x in range(ice_goal_layer['width']):
+        tile_id = ice_goal_layer['data'][y * ice_goal_layer['width'] + x]
+        if tile_id != 0:  # Non-zero value means a tile is present here
+            blue_goal = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+
+# Defining Hazards
+
+
 
 # Flags to check if players reached the goal
 flame_knight_reached_goal = False
@@ -110,8 +125,9 @@ while not rl.window_should_close():
     move_player(flame_knight, True)
     move_player(ice_wizard, False)
 
-    mouse_x, mouse_y = rl.get_mouse_x(), rl.get_mouse_y()
-    rl.draw_text(f"X: {mouse_x} Y: {mouse_y}", mouse_x + 10, mouse_y + 10, 10, rl.RED)
+    # Code for mouse pos
+    #mouse_x, mouse_y = rl.get_mouse_x(), rl.get_mouse_y()
+    #rl.draw_text(f"X: {mouse_x} Y: {mouse_y}", mouse_x + 10, mouse_y + 10, 10, rl.RED)
 
     flame_knight.speed.y += 0.5
     ice_wizard.speed.y += 0.5
