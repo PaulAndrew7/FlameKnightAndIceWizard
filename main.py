@@ -17,13 +17,12 @@ class Platform:
         self.color = color
 
 class Elevator:
-    def __init__(self, rect, color, range_y=100, continuous=False):  # Default range_y is 100 if not provided
+    def __init__(self, rect, color, range_y=100):  # Default range_y is 100 if not provided
         self.rect = rect
         self.color = color
         self.range_y = range_y  # This is the range of vertical movement
         self.start_y = rect.y
         self.current_y = rect.y
-        self.continuous = continuous 
         self.direction = 1
 
 def move_player(player, is_flame_knight):
@@ -116,12 +115,12 @@ def handle_lever1(player):
             # Toggle the elevator's active state
             elevator1_active = not elevator1_active
 
-def update_elevator(elevator, elevator1_active):
+def update_elevator1(elevator, elevator_active):
     
     max_y = elevator.start_y  # Calculate max_y relative to start_y
     min_y = elevator.start_y - elevator.range_y  # Calculate min_y relative to start_y
 
-    if elevator1_active:
+    if elevator_active:
         if elevator.current_y > max_y:
             elevator.direction = -1  # Move up
         elif elevator.current_y < min_y:
@@ -132,6 +131,32 @@ def update_elevator(elevator, elevator1_active):
 
     elevator.rect.y = elevator.current_y
 
+def update_elevator2(elevator, elevator_active):
+    max_y = elevator.start_y - elevator.range_y  # Highest position (top of the range)
+    min_y = elevator.start_y  # Starting position (lowest point)
+
+    if elevator_active:
+        # Move up until reaching max_y
+        if elevator.current_y > max_y:
+            elevator.direction = -1  # Move up
+            elevator.current_y += elevator.direction  # Adjust speed as needed
+    else:
+        # Move down until reaching min_y, then stop
+        if elevator.current_y < min_y:
+            elevator.current_y += 1  # Move down slowly
+        else:
+            elevator.current_y = min_y  # Snap to starting position to ensure it stays there
+
+    # Update the elevator's rectangle position
+    elevator.rect.y = elevator.current_y
+
+
+def handle_buttons(button, player):
+    # Check if a given player is colliding with the button
+    player_rect = rl.Rectangle(player.position.x, player.position.y, player.size.x, player.size.y)
+    return rl.check_collision_recs(player_rect, button)
+
+
 # Screen setup
 screen_width = 800
 screen_height = 600
@@ -140,7 +165,7 @@ rl.init_window(screen_width, screen_height, "Flame Knight And Ice Wizard")
 
 # Players setup
 # 100, 500
-flame_knight = Player(rl.Vector2(200, 300), rl.Vector2(20, 35), ORANGE)
+flame_knight = Player(rl.Vector2(200, 250), rl.Vector2(20, 35), ORANGE)
 ice_wizard = Player(rl.Vector2(200, 500), rl.Vector2(20, 35), SKYBLUE)
 
 # Load the JSON level file
@@ -237,7 +262,7 @@ for y in range(elevator_layer['height']):
             elevator_rect = rl.Rectangle(x * tile_width, y * tile_height, width_count * tile_width, tile_height)
             elevator_color = BROWN
             # Create the elevator and append it to the list
-            elevator1 = Elevator(elevator_rect, elevator_color)
+            elevator1 = Elevator(elevator_rect, elevator_color, 80)
 
             x += width_count
         else:
@@ -263,13 +288,24 @@ for y in range(elevator_layer['height']):
             elevator_rect = rl.Rectangle(x * tile_width, y * tile_height, width_count * tile_width, tile_height)
             elevator_color = BROWN
             # Create the elevator and append it to the list
-            elevator2 = Elevator(elevator_rect, elevator_color)
+            elevator2 = Elevator(elevator_rect, elevator_color, 50)
 
             x += width_count
         else:
             x += 1
             
 elevator2_active = False  # Single boolean variable for the elevator
+
+# Button 1
+buttons = []
+button_layer = level_data['layers'][9]
+for y in range(button_layer['height']):
+    for x in range(button_layer['width']):
+        tile_id = button_layer['data'][y * lever_layer['width'] + x]
+        if tile_id != 0:  # Non-zero value means a tile is present here
+            buttons.append(rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height))
+button1 = buttons[0]
+button2 = buttons[1]
 
 # Flags to check if players reached the goal
 flame_knight_reached_goal = False
@@ -313,7 +349,7 @@ while not rl.window_should_close():
     handle_lever1(flame_knight)
     handle_lever1(ice_wizard)
 
-    update_elevator(elevator1, elevator1_active)
+    update_elevator1(elevator1, elevator1_active)
     handle_platform_collision(flame_knight, elevator1)  # Handle collision with the elevator
     handle_platform_collision(ice_wizard, elevator1)   # Handle collision with the elevator 
 
@@ -374,6 +410,28 @@ while not rl.window_should_close():
 
     # Draw levers
     rl.draw_rectangle_rec(lever1, DARKGREEN)
+
+    # Draw second elevator
+    rl.draw_rectangle_rec(elevator2.rect, elevator2.color)
+
+    # Draw buttons
+    rl.draw_rectangle_rec(button1, YELLOW)
+    rl.draw_rectangle_rec(button2, YELLOW)
+
+    # Button Handling
+    elevator2_active = False
+
+# Check each player for collisions with buttons
+    if handle_buttons(button1, flame_knight) or handle_buttons(button1, ice_wizard):
+        elevator2_active = True
+
+    # Do the same for other buttons if needed, such as button2
+    if handle_buttons(button2, flame_knight) or handle_buttons(button2, ice_wizard):
+        elevator2_active = True
+    
+    update_elevator2(elevator2, elevator2_active)
+    handle_platform_collision(flame_knight, elevator2)  # Handle collision with the elevator
+    handle_platform_collision(ice_wizard, elevator2)
 
     # Display level complete message
     if flame_knight_reached_goal and ice_wizard_reached_goal:
