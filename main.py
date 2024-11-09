@@ -2,8 +2,6 @@ import pyray as rl
 import json
 from raylib.colors import *
 
-MAX_PLATFORMS = 20
-
 class Player:
     def __init__(self, position, size, color):
         self.position = position
@@ -63,6 +61,7 @@ def handle_platform_collision(player, platform):
             player.position.x = platform.rect.x + platform.rect.width
             player.speed.x = 0
 
+# Border collision check
 def check_border_collision():
     if flame_knight.position.x < 0:
         flame_knight.position.x = 0
@@ -107,7 +106,7 @@ ice_wizard = Player(rl.Vector2(200, 500), rl.Vector2(20, 35), SKYBLUE)
 with open('map/level1.json', 'r') as f:
     level_data = json.load(f)
 
-# Extract the foreground layer (assuming it's the second layer in the JSON)
+# Extract the foreground layer 
 foreground_layer = level_data['layers'][1]  # Adjust index based on your JSON structure
 
 # Tile size (adjust to your actual tile size)
@@ -146,7 +145,7 @@ for y in range(water_layer['height']):
     for x in range(water_layer['width']):
         tile_id = water_layer['data'][y * water_layer['width'] + x]
         if tile_id != 0:  
-            platform_rect = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+            platform_rect = rl.Rectangle(x * tile_width, (y * tile_height) + (tile_height // 2) + 1, tile_width, tile_height // 2)
             platform_color = BLUE  
             waters.append(Platform(platform_rect, platform_color))
 
@@ -156,7 +155,7 @@ for y in range(lava_layer['height']):
     for x in range(lava_layer['width']):
         tile_id = lava_layer['data'][y * lava_layer['width'] + x]
         if tile_id != 0:  
-            platform_rect = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+            platform_rect = rl.Rectangle(x * tile_width, (y * tile_height) + (tile_height // 2) + 1, tile_width, tile_height // 2)
             platform_color = ORANGE  
             lavas.append(Platform(platform_rect, platform_color))
 
@@ -166,7 +165,7 @@ for y in range(goo_layer['height']):
     for x in range(goo_layer['width']):
         tile_id = goo_layer['data'][y * goo_layer['width'] + x]
         if tile_id != 0:  
-            platform_rect = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+            platform_rect = rl.Rectangle(x * tile_width,(y * tile_height) + (tile_height // 2) + 1, tile_width, tile_height // 2)
             platform_color = GREEN  
             goos.append(Platform(platform_rect, platform_color))
 
