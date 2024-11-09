@@ -105,23 +105,23 @@ def check_border_collision():
         ice_wizard.speed.y = 0  # Stop movement down
 
 
-def handle_lever(player, lever):
-    global elevator_active  # Declare elevator_active as global
+def handle_lever1(player):
+    global elevator1_active  # Declare elevator1_active as global
     
     player_rect = rl.Rectangle(player.position.x, player.position.y, player.size.x, player.size.y)
 
-    if rl.check_collision_recs(player_rect, lever):
+    if rl.check_collision_recs(player_rect, lever1):
         if (rl.is_key_pressed(rl.KEY_S) and player == flame_knight) or \
            (rl.is_key_pressed(rl.KEY_DOWN) and player == ice_wizard):
             # Toggle the elevator's active state
-            elevator_active = not elevator_active
+            elevator1_active = not elevator1_active
 
-def update_elevator(elevator, elevator_active):
+def update_elevator(elevator, elevator1_active):
     
     max_y = elevator.start_y  # Calculate max_y relative to start_y
     min_y = elevator.start_y - elevator.range_y  # Calculate min_y relative to start_y
 
-    if elevator_active:
+    if elevator1_active:
         if elevator.current_y > max_y:
             elevator.direction = -1  # Move up
         elif elevator.current_y < min_y:
@@ -211,15 +211,15 @@ for y in range(goo_layer['height']):
             platform_color = GREEN  
             goos.append(Platform(platform_rect, platform_color))
 
-levers = []
 lever_layer = level_data['layers'][7]
 for y in range(lever_layer['height']):
     for x in range(lever_layer['width']):
         tile_id = lever_layer['data'][y * lever_layer['width'] + x]
         if tile_id != 0:  # Non-zero value means a tile is present here
-            levers.append(rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height))
+            lever1 = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
 
-# --- Elevator setup ---
+
+# Elevator 1 
 
 elevator_layer = level_data['layers'][8]  # Your elevator layer
 for y in range(elevator_layer['height']):
@@ -243,7 +243,33 @@ for y in range(elevator_layer['height']):
         else:
             x += 1
             
-elevator_active = False  # Single boolean variable for the elevator
+elevator1_active = False  # Single boolean variable for the elevator
+
+# Elevator 2
+
+elevator_layer = level_data['layers'][10]  # Your elevator layer
+for y in range(elevator_layer['height']):
+    x = 0
+    while x < elevator_layer['width']:
+        tile_id = elevator_layer['data'][y * elevator_layer['width'] + x]
+        if tile_id != 0:  # Non-zero tile means part of the elevator
+            width_count = 1
+            while (x + width_count < elevator_layer['width'] and 
+                   elevator_layer['data'][y * elevator_layer['width'] + x + width_count] != 0 and 
+                   width_count < 4):
+                width_count += 1
+
+            # Create a single elevator platform rectangle
+            elevator_rect = rl.Rectangle(x * tile_width, y * tile_height, width_count * tile_width, tile_height)
+            elevator_color = BROWN
+            # Create the elevator and append it to the list
+            elevator2 = Elevator(elevator_rect, elevator_color)
+
+            x += width_count
+        else:
+            x += 1
+            
+elevator2_active = False  # Single boolean variable for the elevator
 
 # Flags to check if players reached the goal
 flame_knight_reached_goal = False
@@ -283,11 +309,11 @@ while not rl.window_should_close():
     ice_wizard_reached_goal = rl.check_collision_recs(ice_wizard_rect, blue_goal)
 
     # --- Lever and Elevator Logic ---
-    for lever in levers:
-        handle_lever(flame_knight, lever)
-        handle_lever(ice_wizard, lever)
+    
+    handle_lever1(flame_knight)
+    handle_lever1(ice_wizard)
 
-    update_elevator(elevator1, elevator_active)
+    update_elevator(elevator1, elevator1_active)
     handle_platform_collision(flame_knight, elevator1)  # Handle collision with the elevator
     handle_platform_collision(ice_wizard, elevator1)   # Handle collision with the elevator 
 
@@ -347,8 +373,7 @@ while not rl.window_should_close():
     rl.draw_rectangle_rec(blue_goal, BLUE)
 
     # Draw levers
-    for lever in levers:
-        rl.draw_rectangle_rec(lever, DARKGREEN)
+    rl.draw_rectangle_rec(lever1, DARKGREEN)
 
     # Display level complete message
     if flame_knight_reached_goal and ice_wizard_reached_goal:
