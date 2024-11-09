@@ -1,4 +1,4 @@
-import pyray as rl
+import raylibpy as rl
 import json
 from raylib.colors import *
 
