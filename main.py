@@ -165,7 +165,7 @@ rl.init_window(screen_width, screen_height, "Flame Knight And Ice Wizard")
 
 # Players setup
 # 100, 500
-flame_knight = Player(rl.Vector2(200, 250), rl.Vector2(20, 35), ORANGE)
+flame_knight = Player(rl.Vector2(200, 200), rl.Vector2(20, 35), ORANGE)
 ice_wizard = Player(rl.Vector2(200, 500), rl.Vector2(20, 35), SKYBLUE)
 
 # Load the JSON level file
