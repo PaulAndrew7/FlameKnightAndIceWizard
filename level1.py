@@ -25,6 +25,8 @@ class Elevator:
         self.current_y = rect.y
         self.direction = 1
 
+
+
 def move_player(player, is_flame_knight):
     if is_flame_knight:
         if rl.is_key_down(rl.KEY_A):
@@ -163,6 +165,16 @@ screen_height = 600
 ground_level = screen_height - 35
 rl.init_window(screen_width, screen_height, "Flame Knight And Ice Wizard")
 
+# Loading textures
+level1_texture = rl.load_texture("assets/textures/level1.png");
+elevator_texture = rl.load_texture("assets/textures/elevator.png")
+button_on_texture = rl.load_texture("assets/textures/button_on.png")
+button_off_texture = rl.load_texture("assets/textures/button_off.png")
+lever_on_texture = rl.load_texture("assets/textures/lever_on.png")
+lever_off_texture = rl.load_texture("assets/textures/lever_off.png")
+
+
+
 # Players setup
 # 100, 500
 flame_knight = Player(rl.Vector2(200, 200), rl.Vector2(20, 35), ORANGE)
@@ -172,12 +184,13 @@ ice_wizard = Player(rl.Vector2(200, 500), rl.Vector2(20, 35), SKYBLUE)
 with open('map/level1.json', 'r') as f:
     level_data = json.load(f)
 
-# Extract the foreground layer 
-foreground_layer = level_data['layers'][1]  # Adjust index based on your JSON structure
 
 # Tile size (adjust to your actual tile size)
 tile_width = 25
 tile_height = 25
+
+# Extract the foreground layer 
+foreground_layer = level_data['layers'][1]
 
 # Create platforms based on the foreground layer (tiles with value != 0)
 platforms = []
@@ -221,7 +234,7 @@ lava_layer = level_data['layers'][3]
 for y in range(lava_layer['height']):
     for x in range(lava_layer['width']):
         tile_id = lava_layer['data'][y * lava_layer['width'] + x]
-        if tile_id != 0:  
+        if tile_id != 0:   
             platform_rect = rl.Rectangle(x * tile_width, (y * tile_height) + (tile_height // 2) + 1, tile_width, tile_height // 2)
             platform_color = ORANGE  
             lavas.append(Platform(platform_rect, platform_color))
@@ -316,6 +329,129 @@ rl.set_target_fps(60)
 
 # Game loop
 while not rl.window_should_close():
+ 
+    # Begin Drawing
+    rl.begin_drawing()
+    rl.clear_background(RAYWHITE)
+
+    for water in waters:
+        rl.draw_rectangle_rec(water.rect, water.color)
+    
+    for lava in lavas:
+        rl.draw_rectangle_rec(lava.rect, lava.color)
+
+    for goo in goos:
+        rl.draw_rectangle_rec(goo.rect, goo.color)
+    
+    # Draw platforms
+    for platform in platforms:
+        rl.draw_rectangle_rec(platform.rect, platform.color)
+    
+    # Draw goals
+    rl.draw_rectangle_rec(red_goal, RED)
+    rl.draw_rectangle_rec(blue_goal, BLUE)
+
+    # Draw boundary lines
+    rl.draw_rectangle_lines(0, 0, screen_width, screen_height, BLACK)
+
+    # Draw level texture
+    rl.draw_texture(level1_texture, 0, 0, WHITE)
+
+
+    # Update player rectangles for collision detection
+    flame_knight_rect = rl.Rectangle(flame_knight.position.x, flame_knight.position.y, flame_knight.size.x, flame_knight.size.y)
+    ice_wizard_rect = rl.Rectangle(ice_wizard.position.x, ice_wizard.position.y, ice_wizard.size.x, ice_wizard.size.y)
+
+    
+
+    # Draw elevator 1
+    rl.draw_texture_pro(
+        elevator_texture,                           
+        rl.Rectangle(0, 0, elevator_texture.width, elevator_texture.height), 
+        elevator1.rect, 
+        rl.Vector2(0, 0),                   
+        0,                                  
+        WHITE                            
+    )
+
+    # Draw elevator 2
+    rl.draw_texture_pro(
+        elevator_texture,                            
+        rl.Rectangle(0, 0, elevator_texture.width, elevator_texture.height),  
+        elevator2.rect, 
+        rl.Vector2(0, 0),                   
+        0,                                  
+        WHITE                            
+    )
+
+    
+    # Draw buttons
+    if rl.check_collision_recs(flame_knight_rect, button1) or rl.check_collision_recs(ice_wizard_rect, button1):
+        
+        rl.draw_texture_pro(
+            button_on_texture,                            
+            rl.Rectangle(0, 0, button_on_texture.width, button_on_texture.height),  
+            button1, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+    else:
+        rl.draw_texture_pro(
+            button_off_texture,                            
+            rl.Rectangle(0, 0, button_off_texture.width, button_off_texture.height),  
+            button1, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE
+        )
+    
+    if rl.check_collision_recs(flame_knight_rect, button2) or rl.check_collision_recs(ice_wizard_rect, button2):
+        rl.draw_texture_pro(
+            button_on_texture,                            
+            rl.Rectangle(0, 0, button_on_texture.width, button_on_texture.height),  
+            button2, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+    else:
+        rl.draw_texture_pro(
+            button_off_texture,                            
+            rl.Rectangle(0, 0, button_off_texture.width, button_off_texture.height),  
+            button2, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE
+        )
+    
+
+
+
+    # Draw levers
+    if elevator1_active:
+        rl.draw_texture_pro(
+            lever_on_texture,                            
+            rl.Rectangle(0, 0, lever_on_texture.width, lever_on_texture.height),  
+            lever1, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+    else:
+        rl.draw_texture_pro(
+            lever_off_texture,                            
+            rl.Rectangle(0, 0, lever_off_texture.width, lever_off_texture.height),  
+            lever1, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+
+    # Draw players
+    rl.draw_rectangle_rec(flame_knight_rect, flame_knight.color)
+    rl.draw_rectangle_rec(ice_wizard_rect, ice_wizard.color)
+
     move_player(flame_knight, True)
     move_player(ice_wizard, False)
 
@@ -323,9 +459,7 @@ while not rl.window_should_close():
     flame_knight.speed.y += 0.3
     ice_wizard.speed.y += 0.3
 
-    # Update player rectangles for collision detection
-    flame_knight_rect = rl.Rectangle(flame_knight.position.x, flame_knight.position.y, flame_knight.size.x, flame_knight.size.y)
-    ice_wizard_rect = rl.Rectangle(ice_wizard.position.x, ice_wizard.position.y, ice_wizard.size.x, ice_wizard.size.y)
+    
 
     # Collision with standard platforms
     for platform in platforms:
@@ -358,8 +492,6 @@ while not rl.window_should_close():
     # Hazard collision detection
 
     
-    for water in waters:
-        rl.draw_rectangle_rec(water.rect, water.color)
 
     for water in waters:
         if rl.check_collision_recs(flame_knight_rect, water.rect):
@@ -369,8 +501,6 @@ while not rl.window_should_close():
         elif rl.check_collision_recs(ice_wizard_rect, water.rect):
             ice_wizard.can_jump = True
 
-    for lava in lavas:
-        rl.draw_rectangle_rec(lava.rect, lava.color)
 
     for lava in lavas:
         if rl.check_collision_recs(ice_wizard_rect, lava.rect):
@@ -379,8 +509,7 @@ while not rl.window_should_close():
             ice_wizard.position = rl.Vector2(200, 500)
         elif rl.check_collision_recs(flame_knight_rect, lava.rect):
             flame_knight.can_jump = True
-    for goo in goos:
-        rl.draw_rectangle_rec(goo.rect, goo.color)
+
 
     for goo in goos:
         if rl.check_collision_recs(flame_knight_rect, goo.rect) or \
@@ -388,35 +517,6 @@ while not rl.window_should_close():
             print("Player touched goo! Game Over!")
             flame_knight.position = rl.Vector2(100, 500)
             ice_wizard.position = rl.Vector2(200, 500)
-
-    # Draw everything
-    rl.begin_drawing()
-    rl.clear_background(RAYWHITE)
-
-    # Draw platforms
-    for platform in platforms:
-        rl.draw_rectangle_rec(platform.rect, platform.color)
-
-    # Draw the elevator
-    rl.draw_rectangle_rec(elevator1.rect, elevator1.color)
-
-    # Draw players
-    rl.draw_rectangle_rec(flame_knight_rect, flame_knight.color)
-    rl.draw_rectangle_rec(ice_wizard_rect, ice_wizard.color)
-
-    # Draw goals
-    rl.draw_rectangle_rec(red_goal, RED)
-    rl.draw_rectangle_rec(blue_goal, BLUE)
-
-    # Draw levers
-    rl.draw_rectangle_rec(lever1, DARKGREEN)
-
-    # Draw second elevator
-    rl.draw_rectangle_rec(elevator2.rect, elevator2.color)
-
-    # Draw buttons
-    rl.draw_rectangle_rec(button1, YELLOW)
-    rl.draw_rectangle_rec(button2, YELLOW)
 
     # Button Handling
     elevator2_active = False
@@ -437,7 +537,7 @@ while not rl.window_should_close():
     if flame_knight_reached_goal and ice_wizard_reached_goal:
         rl.draw_text("Level Complete!", screen_width // 2 - 100, screen_height // 2, 20, GREEN)
 
-    rl.draw_rectangle_lines(0, 0, screen_width, screen_height, BLACK)
+    
 
     rl.end_drawing()
 
