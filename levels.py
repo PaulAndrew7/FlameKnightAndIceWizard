@@ -21,8 +21,8 @@ button2_y = 400
 button2_width = 350
 button2_height = 100
 
-levelselect1_texture = rl.load_texture("assets/menus/levelselect1.png");
-levelselect2_texture = rl.load_texture("assets/menus/levelselect2.png");
+levelselect1_texture = rl.load_texture("assets/menus/levelselect1.png")
+levelselect2_texture = rl.load_texture("assets/menus/levelselect2.png")
 
 # Audio
 rl.init_audio_device()
@@ -43,23 +43,16 @@ def read_levels():
     return level_data
 
 
-
-
-
 while not rl.window_should_close():
 
     rl.update_music_stream(background_music)
 
-    # Update
+    # Mouse position update
     mouse_pos = rl.get_mouse_position()
 
     # Read and display levels
     levels = read_levels()
     level2 = levels['level2']
-    
-
-    
-    
 
     # Draw everything
     rl.begin_drawing()
@@ -70,7 +63,6 @@ while not rl.window_should_close():
         # Start game or do something
         rl.close_window()
         subprocess.run(["python", "level1.py"])
-        
 
     if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(button2_x, button2_y, button2_width, button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
         print("Button 2 clicked!")
@@ -79,16 +71,12 @@ while not rl.window_should_close():
             rl.close_window()
             subprocess.run(["python", "level2.py"])
 
-        
-    
     # Draw main menu buttons
 
     if level2:
         rl.draw_texture(levelselect2_texture, 0, 0, WHITE)
     else:
         rl.draw_texture(levelselect1_texture, 0, 0, WHITE)
-
-
 
     rl.end_drawing()
 

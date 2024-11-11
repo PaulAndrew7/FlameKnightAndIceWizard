@@ -41,6 +41,8 @@ def write_levels(data):
     print("Level data written to file.")
 
 # Handle platform collision with player
+
+
 def handle_platform_collision(player, platform):
     player_rect = rl.Rectangle(
         player.position.x, player.position.y, player.size.x, player.size.y)
@@ -99,8 +101,10 @@ def check_border_collision():
         ice_wizard.speed.y = 0  # Stop movement down
 
 # Handle lever 1
+
+
 def handle_lever1(player):
-    global elevator1_active  
+    global elevator1_active
     global interact_sound_played
     player_rect = rl.Rectangle(
         player.position.x, player.position.y, player.size.x, player.size.y)
@@ -113,9 +117,11 @@ def handle_lever1(player):
             rl.play_sound(interact_sound)
 
 # Type 1 elevator handling
+
+
 def update_elevator1(elevator, elevator_active):
 
-    max_y = elevator.start_y  
+    max_y = elevator.start_y
     min_y = elevator.start_y - elevator.range_y
 
     if elevator_active:
@@ -124,30 +130,34 @@ def update_elevator1(elevator, elevator_active):
         elif elevator.current_y < min_y:
             elevator.direction = 1   # Move down
 
-        elevator.current_y += elevator.direction  
+        elevator.current_y += elevator.direction
 
     elevator.rect.y = elevator.current_y
 
 # Type 2 elevator handling
+
+
 def update_elevator2(elevator, elevator_active):
     max_y = elevator.start_y - elevator.range_y
-    min_y = elevator.start_y  
+    min_y = elevator.start_y
 
     if elevator_active:
         if elevator.current_y > max_y:
-            elevator.direction = -1  
-            elevator.current_y += elevator.direction 
+            elevator.direction = -1
+            elevator.current_y += elevator.direction
     else:
         if elevator.current_y < min_y:
-            elevator.current_y += 1  
+            elevator.current_y += 1
         else:
-            elevator.current_y = min_y  
+            elevator.current_y = min_y
 
     elevator.rect.y = elevator.current_y
 
 # Check button collision with player
+
+
 def handle_buttons(button, player):
-    
+
     player_rect = rl.Rectangle(
         player.position.x, player.position.y, player.size.x, player.size.y)
     return rl.check_collision_recs(player_rect, button)
@@ -188,7 +198,6 @@ interact_sound = rl.load_sound("assets/sounds/interact.ogg")
 interact_sound_played = False
 button1_last_state = False
 button2_last_state = False
-
 
 
 # Set volume
@@ -283,6 +292,8 @@ def animate_ice_wizard(player, current_texture_iw):
             return ice_wizard_texture1, source_rect
 
 # Player movement
+
+
 def move_player(player, is_flame_knight):
 
     current_time = time.time()
@@ -373,14 +384,12 @@ with open('map/level1.json', 'r') as f:
     level_data = json.load(f)
 
 
-# Tile size 
+# Tile size
 tile_width = 25
 tile_height = 25
 
 
-
-
-# Create platforms 
+# Create platforms
 foreground_layer = level_data['layers'][1]
 platforms = []
 for y in range(foreground_layer['height']):
@@ -677,7 +686,6 @@ while not rl.window_should_close():
     ice_wizard_reached_goal = rl.check_collision_recs(
         ice_wizard_rect, blue_goal)
 
-
     # Lever 1 logic
     handle_lever1(flame_knight)
     handle_lever1(ice_wizard)
@@ -687,8 +695,6 @@ while not rl.window_should_close():
     # Handle collision with the elevator
     handle_platform_collision(flame_knight, elevator1)
     handle_platform_collision(ice_wizard, elevator1)
-
-
 
     # Game over detection and popup
     if not show_over:
@@ -728,7 +734,6 @@ while not rl.window_should_close():
             ice_wizard.position = rl.Vector2(
                 ice_wizard_spawnx, ice_wizard_spawny)
 
-
         if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button2_x, popup_button2_y, popup_button2_width, popup_button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             print("Quit")
             rl.close_window()
@@ -750,26 +755,26 @@ while not rl.window_should_close():
 
     if handle_buttons(button1, flame_knight) or handle_buttons(button1, ice_wizard):
         if not button1_last_state:  # Check if the button was not pressed before
-            if not interact_sound_played: 
+            if not interact_sound_played:
                 rl.play_sound(interact_sound)
                 interact_sound_played = True
-        elevator2_active = True 
-        button1_last_state = True 
+        elevator2_active = True
+        button1_last_state = True
     else:
-        button1_last_state = False  
-        interact_sound_played = False  
+        button1_last_state = False
+        interact_sound_played = False
 
     # Button 2 handling
     if handle_buttons(button2, flame_knight) or handle_buttons(button2, ice_wizard):
         if not button2_last_state:  # Check if the button was not pressed before
-            if not interact_sound_played:  
+            if not interact_sound_played:
                 rl.play_sound(interact_sound)
                 interact_sound_played = True
-        elevator2_active = True 
-        button2_last_state = True 
+        elevator2_active = True
+        button2_last_state = True
     else:
-        button2_last_state = False  
-        interact_sound_played = False  
+        button2_last_state = False
+        interact_sound_played = False
 
     update_elevator2(elevator2, elevator2_active)
 
@@ -803,13 +808,12 @@ while not rl.window_should_close():
         if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button1_x, popup_button1_y, popup_button1_width,
                                                                 popup_button1_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             print("Retry")
-            
+
             # Reset elevators
             elevator1_active = False
             elevator2_active = False
             show_pause = False
             rl.end_drawing()
-       
 
         if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button2_x, popup_button2_y, popup_button2_width, popup_button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             print("Quit")
@@ -839,7 +843,7 @@ while not rl.window_should_close():
         level_data = {
             "level1": True,
             "level2": True,
-            "level3": False  
+            "level3": False
         }
 
         write_levels(level_data)

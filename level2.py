@@ -33,6 +33,8 @@ class Elevator:
         self.direction = 1
 
 # Write level data
+
+
 def write_levels(data):
     filename = "assets/levels.txt"
     with open(filename, "w") as file:
@@ -41,6 +43,8 @@ def write_levels(data):
     print("Level data written to file.")
 
 # Platform and player collision handling
+
+
 def handle_platform_collision(player, platform):
     player_rect = rl.Rectangle(
         player.position.x, player.position.y, player.size.x, player.size.y)
@@ -70,7 +74,7 @@ def handle_platform_collision(player, platform):
 # Border collision check
 def check_border_collision():
 
-    #Flame Knight border collision
+    # Flame Knight border collision
     if flame_knight.position.x < 0:
         flame_knight.position.x = 0
         flame_knight.speed.x = 0  # Stop movement left
@@ -103,7 +107,7 @@ def check_border_collision():
 
 # Handling interaction with lever 1
 def handle_lever1(player):
-    global elevator1_active 
+    global elevator1_active
     global interact_sound_played
 
     player_rect = rl.Rectangle(
@@ -117,8 +121,10 @@ def handle_lever1(player):
             rl.play_sound(interact_sound)
 
 # Handling interaction with lever 2
+
+
 def handle_lever2(player):
-    global elevator4_active  
+    global elevator4_active
     global interact_sound_played
 
     player_rect = rl.Rectangle(
@@ -132,11 +138,10 @@ def handle_lever2(player):
             rl.play_sound(interact_sound)
 
 
-
 # Elevator type 1 updates
 def update_elevator1(elevator, elevator_active):
 
-    max_y = elevator.start_y  
+    max_y = elevator.start_y
     min_y = elevator.start_y - elevator.range_y
 
     if elevator_active:
@@ -145,27 +150,29 @@ def update_elevator1(elevator, elevator_active):
         elif elevator.current_y < min_y:
             elevator.direction = 1   # Move down
 
-        elevator.current_y += elevator.direction  
+        elevator.current_y += elevator.direction
 
     elevator.rect.y = elevator.current_y
 
 # Elevator type 2 updates
+
+
 def update_elevator2(elevator, elevator_active):
-  
+
     max_y = elevator.start_y - elevator.range_y
     min_y = elevator.start_y  #
 
     if elevator_active:
-        
+
         if elevator.current_y > max_y:
             elevator.direction = -1  # Move up
-            elevator.current_y += elevator.direction  
+            elevator.current_y += elevator.direction
     else:
-        
+
         if elevator.current_y < min_y:
-            elevator.current_y += 1  
+            elevator.current_y += 1
         else:
-            elevator.current_y = min_y  
+            elevator.current_y = min_y
 
     elevator.rect.y = elevator.current_y
 
@@ -187,7 +194,8 @@ rl.init_window(screen_width, screen_height, "Flame Knight And Ice Wizard")
 # Loading textures
 level2_texture = rl.load_texture("assets/textures/level2.png")
 elevator_texture = rl.load_texture("assets/textures/elevator.png")
-elevatorflipped_texture = rl.load_texture("assets/textures/elevatorflipped.png")
+elevatorflipped_texture = rl.load_texture(
+    "assets/textures/elevatorflipped.png")
 button_on_texture = rl.load_texture("assets/textures/button_on.png")
 button_off_texture = rl.load_texture("assets/textures/button_off.png")
 button2_on_texture = rl.load_texture("assets/textures/button2_on.png")
@@ -314,6 +322,8 @@ def animate_ice_wizard(player, current_texture_iw):
             return ice_wizard_texture1, source_rect
 
 # Character movement
+
+
 def move_player(player, is_flame_knight):
 
     current_time = time.time()
@@ -389,7 +399,7 @@ def move_player(player, is_flame_knight):
     player.position.y += player.speed.y
 
 
-#Spawn positions
+# Spawn positions
 flame_knight_spawnx, flame_knight_spawny = 30, 510
 ice_wizard_spawnx, ice_wizard_spawny = 30, 510
 
@@ -408,7 +418,7 @@ with open('map/level2.json', 'r') as f:
 tile_width = 25
 tile_height = 25
 
-# Create platforms 
+# Create platforms
 foreground_layer = level_data['layers'][1]
 platforms = []
 for y in range(foreground_layer['height']):
@@ -942,7 +952,7 @@ while not rl.window_should_close():
     # Elevator 4 logic
     elevator4.range_y = 100
     update_elevator2(elevator4, elevator4_active)
-   
+
     # Handle collision with the elevator
     handle_platform_collision(flame_knight, elevator4)
     handle_platform_collision(ice_wizard, elevator4)
@@ -1018,7 +1028,6 @@ while not rl.window_should_close():
     handle_platform_collision(flame_knight, elevator6)
     handle_platform_collision(ice_wizard, elevator6)
 
-
     # Game over handling and popup
     if not show_over:
 
@@ -1061,7 +1070,6 @@ while not rl.window_should_close():
                 flame_knight_spawnx, flame_knight_spawny)
             ice_wizard.position = rl.Vector2(
                 ice_wizard_spawnx, ice_wizard_spawny)
-
 
         if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button2_x, popup_button2_y, popup_button2_width, popup_button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             print("Quit")
@@ -1113,7 +1121,7 @@ while not rl.window_should_close():
             elevator4_active = False
             elevator5_active = False
             elevator6_active = False
-            
+
             show_pause = False
             rl.end_drawing()
 
@@ -1145,7 +1153,7 @@ while not rl.window_should_close():
         level_data = {
             "level1": True,
             "level2": True,
-            "level3": False  
+            "level3": False
         }
 
         write_levels(level_data)
@@ -1153,7 +1161,7 @@ while not rl.window_should_close():
         if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button1_x, popup_button1_y, popup_button1_width,
                                                                 popup_button1_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             print("Next")
-            
+
             show_complete = False
             rl.close_window()
             subprocess.run(["python", "level2.py"])

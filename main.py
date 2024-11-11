@@ -21,7 +21,7 @@ button2_y = 500
 button2_width = 200
 button2_height = 70
 
-mainmenu_texture = rl.load_texture("assets/menus/main menu.png");
+mainmenu_texture = rl.load_texture("assets/menus/main menu.png")
 
 # Audio
 rl.init_audio_device()
@@ -33,11 +33,8 @@ while not rl.window_should_close():
 
     rl.update_music_stream(background_music)
 
-    # Update
+    # Mouse position update
     mouse_pos = rl.get_mouse_position()
-
-    
-    
 
     # Draw everything
     rl.begin_drawing()
@@ -48,24 +45,21 @@ while not rl.window_should_close():
         # Start game or do something
         rl.close_window()
         subprocess.run(["python", "levels.py"])
-        
 
     if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(button2_x, button2_y, button2_width, button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
         print("Button 2 clicked!")
         r1.close_window()
         # Go to options or do something
-        
 
     # Draw main menu buttons
 
-    rl.draw_rectangle(button1_x, button1_y, button1_width, button1_height, DARKGRAY)
-    
+    rl.draw_rectangle(button1_x, button1_y, button1_width,
+                      button1_height, DARKGRAY)
 
-
-    rl.draw_rectangle(button2_x, button2_y, button2_width, button2_height, DARKGRAY)
+    rl.draw_rectangle(button2_x, button2_y, button2_width,
+                      button2_height, DARKGRAY)
 
     rl.draw_texture(mainmenu_texture, 0, 0, WHITE)
-
 
     rl.end_drawing()
 
