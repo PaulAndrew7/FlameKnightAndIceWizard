@@ -1,6 +1,8 @@
 import raylibpy as rl
 import json
 from raylib.colors import *
+import time
+import subprocess
 
 class Player:
     def __init__(self, position, size, color):
@@ -10,6 +12,8 @@ class Player:
         self.color = color
         self.can_jump = True
         self.jump_timer = 0.0
+        self.facing_right = True
+        self.facing_left = False
 
 class Platform:
     def __init__(self, rect, color):
@@ -25,28 +29,15 @@ class Elevator:
         self.current_y = rect.y
         self.direction = 1
 
-def move_player(player, is_flame_knight):
-    if is_flame_knight:
-        if rl.is_key_down(rl.KEY_A):
-            player.position.x -= 4
-        if rl.is_key_down(rl.KEY_D):
-            player.position.x += 4
-        if rl.is_key_down(rl.KEY_W) and player.can_jump and player.jump_timer >= 0.5:
-            player.speed.y = -5
-            player.can_jump = False
-            player.jump_timer = 0.0
-    else:
-        if rl.is_key_down(rl.KEY_LEFT):
-            player.position.x -= 4
-        if rl.is_key_down(rl.KEY_RIGHT):
-            player.position.x += 4
-        if rl.is_key_down(rl.KEY_UP) and player.can_jump and player.jump_timer >= 0.5:
-            player.speed.y = -5
-            player.can_jump = False
-            player.jump_timer = 0.0
+# Write level data
+def write_levels(data):
+    filename = "assets/levels.txt"
+    with open(filename, "w") as file:
+        for level, status in data.items():
+            file.write(f"{level} = {str(status).lower()}\n")
+    print("Level data written to file.")
 
-    player.position.y += player.speed.y
-
+# Platform and player collision handling
 def handle_platform_collision(player, platform):
     player_rect = rl.Rectangle(player.position.x, player.position.y, player.size.x, player.size.y)
 
@@ -103,10 +94,10 @@ def check_border_collision():
         ice_wizard.position.y = screen_height - ice_wizard.size.y
         ice_wizard.speed.y = 0  # Stop movement down
 
-
+#Handling interaction with lever 1
 def handle_lever1(player):
     global elevator1_active  # Declare elevator1_active as global
-    
+    global interact_sound_played
     player_rect = rl.Rectangle(player.position.x, player.position.y, player.size.x, player.size.y)
 
     if rl.check_collision_recs(player_rect, lever1):
@@ -114,7 +105,22 @@ def handle_lever1(player):
            (rl.is_key_pressed(rl.KEY_DOWN) and player == ice_wizard):
             # Toggle the elevator's active state
             elevator1_active = not elevator1_active
+            rl.play_sound(interact_sound)
 
+# Handling interaction with lever 2
+def handle_lever2(player):
+    global elevator4_active  # Declare elevator1_active as global
+    global interact_sound_played
+    player_rect = rl.Rectangle(player.position.x, player.position.y, player.size.x, player.size.y)
+
+    if rl.check_collision_recs(player_rect, lever2):
+        if (rl.is_key_pressed(rl.KEY_S) and player == flame_knight) or \
+           (rl.is_key_pressed(rl.KEY_DOWN) and player == ice_wizard):
+            # Toggle the elevator's active state
+            elevator4_active = not elevator4_active
+            rl.play_sound(interact_sound)
+
+# Continuous
 def update_elevator1(elevator, elevator_active):
     
     max_y = elevator.start_y  # Calculate max_y relative to start_y
@@ -131,8 +137,9 @@ def update_elevator1(elevator, elevator_active):
 
     elevator.rect.y = elevator.current_y
 
+# Once
 def update_elevator2(elevator, elevator_active):
-    max_y = elevator.start_y - elevator.range_y  # Highest position (top of the range)
+    max_y = elevator.start_y - elevator.range_y # Highest position (top of the range)
     min_y = elevator.start_y  # Starting position (lowest point)
 
     if elevator_active:
@@ -163,21 +170,229 @@ screen_height = 600
 ground_level = screen_height - 35
 rl.init_window(screen_width, screen_height, "Flame Knight And Ice Wizard")
 
+# Loading textures
+level2_texture = rl.load_texture("assets/textures/level2.png");
+elevator_texture = rl.load_texture("assets/textures/elevator.png")
+elevatorflipped_texture = rl.load_texture("assets/textures/elevatorflipped.png")
+button_on_texture = rl.load_texture("assets/textures/button_on.png")
+button_off_texture = rl.load_texture("assets/textures/button_off.png")
+button2_on_texture = rl.load_texture("assets/textures/button2_on.png")
+button2_off_texture = rl.load_texture("assets/textures/button2_off.png")
+button3_on_texture = rl.load_texture("assets/textures/button3_on.png")
+button3_off_texture = rl.load_texture("assets/textures/button3_off.png")
+lever_on_texture = rl.load_texture("assets/textures/lever_on.png")
+lever_off_texture = rl.load_texture("assets/textures/lever_off.png")
+flame_knight_texture1 = rl.load_texture("assets/characters/flameknight1.png")
+flame_knight_texture2 = rl.load_texture("assets/characters/flameknight2.png")
+ice_wizard_texture1 = rl.load_texture("assets/characters/icewizard1.png")
+ice_wizard_texture2 = rl.load_texture("assets/characters/icewizard2.png")
+pause_texture = rl.load_texture("assets/menus/pause.png")
+complete_texture = rl.load_texture("assets/menus/complete.png")
+gameover_texture = rl.load_texture("assets/menus/gameover.png")
+animation_speed = 5
+
+# Sounds
+rl.init_audio_device()
+background_music = rl.load_music_stream("assets/sounds/level1.mp3")
+rl.set_music_volume(background_music, 0.3)
+rl.play_music_stream(background_music)
+
+flame_knight_jump_sound = rl.load_sound("assets/sounds/flame_knight_jump.wav")
+ice_wizard_jump_sound = rl.load_sound("assets/sounds/ice_wizard_jump.wav")
+interact_sound = rl.load_sound("assets/sounds/interact.ogg")
+interact_sound_played = False
+button1_last_state = False
+button2_last_state = False
+button3_last_state = False
+
+#block_sound = rl.load_sound("assets/block_touch_sound.wav")
+
+# Set initial volume
+rl.set_music_volume(background_music, 0.8)
+
+
+# Popup Windows
+show_pause = False
+show_over = False
+show_complete = False
+
+
+
+last_texture_swap_time_fk = time.time()
+current_texture_fk = flame_knight_texture1
+
+def animate_flame_knight(player, current_texture_fk):
+    
+    if rl.is_key_down(rl.KEY_W):
+        if player.facing_left:
+            source_rect = rl.Rectangle(0, 0, -flame_knight_texture1.width, flame_knight_texture1.height)
+            return flame_knight_texture2, source_rect
+
+        else:
+            source_rect = rl.Rectangle(0, 0, flame_knight_texture1.width, flame_knight_texture1.height)
+            return flame_knight_texture2, source_rect
+
+    elif rl.is_key_down(rl.KEY_A):
+        player.facing_left = True
+        source_rect = rl.Rectangle(0, 0, -flame_knight_texture1.width, flame_knight_texture1.height)
+        return current_texture_fk, source_rect
+    
+    elif rl.is_key_down(rl.KEY_D):
+        player.facing_left = False
+        source_rect = rl.Rectangle(0, 0, flame_knight_texture1.width, flame_knight_texture1.height)
+        return current_texture_fk, source_rect
+    
+    else:
+        if player.facing_left:
+            source_rect = rl.Rectangle(0, 0, -flame_knight_texture1.width, flame_knight_texture1.height)
+            return flame_knight_texture1, source_rect
+
+        else:
+            source_rect = rl.Rectangle(0, 0, flame_knight_texture1.width, flame_knight_texture1.height)
+            return flame_knight_texture1, source_rect
+
+
+last_texture_swap_time_iw = time.time()
+current_texture_iw = ice_wizard_texture1
+
+def animate_ice_wizard(player, current_texture_iw):
+    
+    if rl.is_key_down(rl.KEY_UP):
+        if player.facing_left:
+            source_rect = rl.Rectangle(0, 0, -ice_wizard_texture1.width, ice_wizard_texture1.height)
+            return ice_wizard_texture2, source_rect
+
+        else:
+            source_rect = rl.Rectangle(0, 0, ice_wizard_texture1.width, ice_wizard_texture1.height)
+            return ice_wizard_texture2, source_rect
+
+    elif rl.is_key_down(rl.KEY_LEFT):
+        player.facing_left = True
+        source_rect = rl.Rectangle(0, 0, -ice_wizard_texture1.width, ice_wizard_texture1.height)
+        return current_texture_iw, source_rect
+    
+    elif rl.is_key_down(rl.KEY_RIGHT):
+        player.facing_left = False
+        source_rect = rl.Rectangle(0, 0, ice_wizard_texture1.width, ice_wizard_texture1.height)
+        return current_texture_iw, source_rect
+    
+    else:
+        if player.facing_left:
+            source_rect = rl.Rectangle(0, 0, -ice_wizard_texture1.width, ice_wizard_texture1.height)
+            return ice_wizard_texture1, source_rect
+
+        else:
+            source_rect = rl.Rectangle(0, 0, ice_wizard_texture1.width, ice_wizard_texture1.height)
+            return ice_wizard_texture1, source_rect
+
+
+
+
+def move_player(player, is_flame_knight):
+    
+    current_time = time.time()
+    if is_flame_knight:
+        global last_texture_swap_time_fk
+        global current_texture_fk
+        if current_time - last_texture_swap_time_fk >= 1 / animation_speed:
+            last_texture_swap_time_fk = current_time
+            if current_texture_fk == flame_knight_texture1:
+                current_texture_fk = flame_knight_texture2
+            else:
+                 current_texture_fk = flame_knight_texture1
+
+
+        if rl.is_key_down(rl.KEY_A):
+            player.position.x -= 4
+            player.facing_left = True
+
+
+        if rl.is_key_down(rl.KEY_D):
+            player.position.x += 4
+            player.facing_left = False
+
+
+        if rl.is_key_down(rl.KEY_W) and player.can_jump and player.jump_timer >= 0.5:
+            global flame_knight_sound_played
+            rl.play_sound(flame_knight_jump_sound)
+        
+            
+            player.speed.y = -5
+            player.can_jump = False
+            player.jump_timer = 0.0
+
+        tex, rec = animate_flame_knight(player, current_texture_fk)
+        rl.draw_texture_pro(
+            tex,
+            rec,
+            flame_knight_rect,
+            rl.Vector2(0, 0),
+            0,
+            WHITE
+        )
+                    
+
+    else:
+        global last_texture_swap_time_iw
+        global current_texture_iw
+        if current_time - last_texture_swap_time_iw >= 1 / animation_speed:
+            last_texture_swap_time_iw = current_time
+            if current_texture_iw == ice_wizard_texture1:
+                current_texture_iw = ice_wizard_texture2
+            else:
+                 current_texture_iw = ice_wizard_texture1
+
+        if rl.is_key_down(rl.KEY_LEFT):
+            player.position.x -= 4
+            player.facing_left = True
+        if rl.is_key_down(rl.KEY_RIGHT):
+            player.position.x += 4
+            player.facing_left = False
+        if rl.is_key_down(rl.KEY_UP) and player.can_jump and player.jump_timer >= 0.5:
+            rl.play_sound(ice_wizard_jump_sound)
+            player.speed.y = -5
+            player.can_jump = False
+            player.is_jumping = True
+            player.jump_timer = 0.0
+        
+        tex, rec = animate_ice_wizard(player, current_texture_iw)
+        rl.draw_texture_pro(
+            tex,
+            rec,
+            ice_wizard_rect,
+            rl.Vector2(0, 0),
+            0,
+            WHITE
+        )
+
+    player.position.y += player.speed.y
+
+
+
+
 # Players setup
 # 100, 500
-flame_knight = Player(rl.Vector2(200, 200), rl.Vector2(20, 35), BLACK)
-ice_wizard = Player(rl.Vector2(200, 500), rl.Vector2(20, 35), BLACK)
+flame_knight_spawnx, flame_knight_spawny = 30, 510
+ice_wizard_spawnx, ice_wizard_spawny = 30, 510
+
+flame_knight = Player(rl.Vector2(flame_knight_spawnx, flame_knight_spawny), rl.Vector2(25, 40), ORANGE)
+ice_wizard = Player(rl.Vector2(ice_wizard_spawnx, ice_wizard_spawny), rl.Vector2(25, 40), SKYBLUE)
+
+def reset_players():
+    flame_knight.position = flame_knight_spawn
+    ice_wizard.position = ice_wizard_spawn
 
 # Load the JSON level file
-with open('map/level1.json', 'r') as f:
+with open('map/level2.json', 'r') as f:
     level_data = json.load(f)
 
-# Extract the foreground layer 
-foreground_layer = level_data['layers'][1]  # Adjust index based on your JSON structure
 
 # Tile size (adjust to your actual tile size)
 tile_width = 25
 tile_height = 25
+
+# Extract the foreground layer 
+foreground_layer = level_data['layers'][1]
 
 # Create platforms based on the foreground layer (tiles with value != 0)
 platforms = []
@@ -221,7 +436,7 @@ lava_layer = level_data['layers'][3]
 for y in range(lava_layer['height']):
     for x in range(lava_layer['width']):
         tile_id = lava_layer['data'][y * lava_layer['width'] + x]
-        if tile_id != 0:  
+        if tile_id != 0:   
             platform_rect = rl.Rectangle(x * tile_width, (y * tile_height) + (tile_height // 2) + 1, tile_width, tile_height // 2)
             platform_color = ORANGE  
             lavas.append(Platform(platform_rect, platform_color))
@@ -271,7 +486,6 @@ for y in range(elevator_layer['height']):
 elevator1_active = False  # Single boolean variable for the elevator
 
 # Elevator 2
-
 elevator_layer = level_data['layers'][10]  # Your elevator layer
 for y in range(elevator_layer['height']):
     x = 0
@@ -297,15 +511,141 @@ for y in range(elevator_layer['height']):
 elevator2_active = False  # Single boolean variable for the elevator
 
 # Button 1
-buttons = []
 button_layer = level_data['layers'][9]
 for y in range(button_layer['height']):
     for x in range(button_layer['width']):
         tile_id = button_layer['data'][y * lever_layer['width'] + x]
         if tile_id != 0:  # Non-zero value means a tile is present here
-            buttons.append(rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height))
-button1 = buttons[0]
-button2 = buttons[1]
+            button1 = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+
+# Lever 2
+lever_layer = level_data['layers'][11]
+for y in range(lever_layer['height']):
+    for x in range(lever_layer['width']):
+        tile_id = lever_layer['data'][y * lever_layer['width'] + x]
+        if tile_id != 0:  # Non-zero value means a tile is present here
+            lever2 = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+
+# Elevator 3
+elevator_layer = level_data['layers'][12]  # Your elevator layer
+for y in range(elevator_layer['height']):
+    x = 0
+    while x < elevator_layer['width']:
+        tile_id = elevator_layer['data'][y * elevator_layer['width'] + x]
+        if tile_id != 0:  # Non-zero tile means part of the elevator
+            width_count = 1
+            while (x + width_count < elevator_layer['width'] and 
+                   elevator_layer['data'][y * elevator_layer['width'] + x + width_count] != 0 and 
+                   width_count < 4):
+                width_count += 1
+
+            # Create a single elevator platform rectangle
+            elevator_rect = rl.Rectangle(x * tile_width, y * tile_height, width_count * tile_width, tile_height)
+            elevator_color = BROWN
+            # Create the elevator and append it to the list
+            elevator3 = Elevator(elevator_rect, elevator_color, 50)
+
+            x += width_count
+        else:
+            x += 1
+            
+elevator3_active = False 
+
+# Button 2
+button_layer = level_data['layers'][13]
+for y in range(button_layer['height']):
+    for x in range(button_layer['width']):
+        tile_id = button_layer['data'][y * lever_layer['width'] + x]
+        if tile_id != 0:  # Non-zero value means a tile is present here
+            button2 = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+
+# Elevator 4
+elevator_layer = level_data['layers'][14]  # Your elevator layer
+
+for x in range(elevator_layer['width']):
+    y = 0
+    while y < elevator_layer['height']:
+        tile_id = elevator_layer['data'][y * elevator_layer['width'] + x]
+        if tile_id != 0:  # Non-zero tile means part of the elevator
+            height_count = 1
+            while (y + height_count < elevator_layer['height'] and 
+                   elevator_layer['data'][(y + height_count) * elevator_layer['width'] + x] != 0 and 
+                   height_count < 4):  # Adjust '4' for max vertical size
+                height_count += 1
+
+            # Create a single elevator platform rectangle
+            elevator_rect = rl.Rectangle(x * tile_width, y * tile_height, tile_width, height_count * tile_height)
+            elevator_color = BROWN
+            # Create the elevator and append it to the list
+            elevator4 = Elevator(elevator_rect, elevator_color, 50)  # Adjust '50' for vertical speed
+
+            y += height_count
+        else:
+            y += 1
+
+elevator4_active = False
+
+
+# Button 3
+button_layer = level_data['layers'][15]
+for y in range(button_layer['height']):
+    for x in range(button_layer['width']):
+        tile_id = button_layer['data'][y * lever_layer['width'] + x]
+        if tile_id != 0:  # Non-zero value means a tile is present here
+            button3 = rl.Rectangle(x * tile_width, y * tile_height, tile_width, tile_height)
+
+# Elevator 5
+elevator_layer = level_data['layers'][16]  # Your elevator layer
+for y in range(elevator_layer['height']):
+    x = 0
+    while x < elevator_layer['width']:
+        tile_id = elevator_layer['data'][y * elevator_layer['width'] + x]
+        if tile_id != 0:  # Non-zero tile means part of the elevator
+            width_count = 1
+            while (x + width_count < elevator_layer['width'] and 
+                   elevator_layer['data'][y * elevator_layer['width'] + x + width_count] != 0 and 
+                   width_count < 4):
+                width_count += 1
+
+            # Create a single elevator platform rectangle
+            elevator_rect = rl.Rectangle(x * tile_width, y * tile_height, width_count * tile_width, tile_height)
+            elevator_color = BROWN
+            # Create the elevator and append it to the list
+            elevator5 = Elevator(elevator_rect, elevator_color, 50)
+
+            x += width_count
+        else:
+            x += 1
+            
+elevator5_active = False 
+
+elevator_layer = level_data['layers'][17]  # Your elevator layer
+
+for x in range(elevator_layer['width']):
+    y = 0
+    while y < elevator_layer['height']:
+        tile_id = elevator_layer['data'][y * elevator_layer['width'] + x]
+        if tile_id != 0:  # Non-zero tile means part of the elevator
+            height_count = 1
+            while (y + height_count < elevator_layer['height'] and 
+                   elevator_layer['data'][(y + height_count) * elevator_layer['width'] + x] != 0 and 
+                   height_count < 4):  # Adjust '4' for max vertical size
+                height_count += 1
+
+            # Create a single elevator platform rectangle
+            elevator_rect = rl.Rectangle(x * tile_width, y * tile_height, tile_width, height_count * tile_height)
+            elevator_color = BROWN
+            # Create the elevator and append it to the list
+            elevator6 = Elevator(elevator_rect, elevator_color, 50)  # Adjust '50' for vertical speed
+
+            y += height_count
+        else:
+            y += 1
+
+elevator6_active = False
+
+
+
 
 # Flags to check if players reached the goal
 flame_knight_reached_goal = False
@@ -316,16 +656,219 @@ rl.set_target_fps(60)
 
 # Game loop
 while not rl.window_should_close():
-    move_player(flame_knight, True)
-    move_player(ice_wizard, False)
 
-    # Update vertical movement (gravity effect)
-    flame_knight.speed.y += 0.3
-    ice_wizard.speed.y += 0.3
+    
+    rl.update_music_stream(background_music)
+ 
+    # Begin Drawing
+    rl.begin_drawing()
+    rl.clear_background(RAYWHITE)
+
+    for water in waters:
+        rl.draw_rectangle_rec(water.rect, water.color)
+    
+    for lava in lavas:
+        rl.draw_rectangle_rec(lava.rect, lava.color)
+
+    for goo in goos:
+        rl.draw_rectangle_rec(goo.rect, goo.color)
+    
+    # Draw platforms
+    for platform in platforms:
+        rl.draw_rectangle_rec(platform.rect, platform.color)
+    
+    # Draw goals
+    rl.draw_rectangle_rec(red_goal, RED)
+    rl.draw_rectangle_rec(blue_goal, BLUE)
+
+    # Draw boundary lines
+    rl.draw_rectangle_lines(0, 0, screen_width, screen_height, BLACK)
+
+    # Draw level texture
+    rl.draw_texture(level2_texture, 0, 0, WHITE)
+
 
     # Update player rectangles for collision detection
     flame_knight_rect = rl.Rectangle(flame_knight.position.x, flame_knight.position.y, flame_knight.size.x, flame_knight.size.y)
     ice_wizard_rect = rl.Rectangle(ice_wizard.position.x, ice_wizard.position.y, ice_wizard.size.x, ice_wizard.size.y)
+
+    
+
+    # Draw elevator 1
+    rl.draw_texture_pro(
+        elevator_texture,                           
+        rl.Rectangle(0, 0, elevator_texture.width, elevator_texture.height), 
+        elevator1.rect, 
+        rl.Vector2(0, 0),                   
+        0,                                  
+        WHITE                            
+    )
+
+    # Draw elevator 2
+    rl.draw_texture_pro(
+        elevator_texture,                            
+        rl.Rectangle(0, 0, elevator_texture.width, elevator_texture.height),  
+        elevator2.rect, 
+        rl.Vector2(0, 0),                   
+        0,                                  
+        WHITE                            
+    )
+
+    # Draw elevator 3
+    rl.draw_texture_pro(
+        elevator_texture,                            
+        rl.Rectangle(0, 0, elevator_texture.width, elevator_texture.height),  
+        elevator3.rect, 
+        rl.Vector2(0, 0),                   
+        0,                                  
+        WHITE                            
+    )
+
+    # Draw elevator 4
+    rl.draw_texture_pro(
+        elevatorflipped_texture,                            
+        rl.Rectangle(0, 0, elevator_texture.width, elevator_texture.height),  
+        elevator4.rect, 
+        rl.Vector2(0, 0),                   
+        0,                                  
+        WHITE                            
+    )
+
+    # Draw elevator 5
+    rl.draw_texture_pro(
+        elevator_texture,                            
+        rl.Rectangle(0, 0, elevator_texture.width, elevator_texture.height),  
+        elevator5.rect, 
+        rl.Vector2(0, 0),                   
+        0,                                  
+        WHITE                            
+    )
+
+    # Draw elevator 6
+    rl.draw_texture_pro(
+        elevatorflipped_texture,                            
+        rl.Rectangle(0, 0, elevator_texture.width, elevator_texture.height),  
+        elevator6.rect, 
+        rl.Vector2(0, 0),                   
+        0,                                  
+        WHITE                            
+    )
+
+    
+    # Draw button 1
+    if rl.check_collision_recs(flame_knight_rect, button1) or rl.check_collision_recs(ice_wizard_rect, button1):
+        
+        rl.draw_texture_pro(
+            button_on_texture,                            
+            rl.Rectangle(0, 0, button_on_texture.width, button_on_texture.height),  
+            button1, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+    else:
+        rl.draw_texture_pro(
+            button_off_texture,                            
+            rl.Rectangle(0, 0, button_off_texture.width, button_off_texture.height),  
+            button1, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE
+        )
+    
+    # Draw button 2
+    if rl.check_collision_recs(flame_knight_rect, button2) or rl.check_collision_recs(ice_wizard_rect, button2):
+        rl.draw_texture_pro(
+            button2_on_texture,                            
+            rl.Rectangle(0, 0, button_on_texture.width, button_on_texture.height),  
+            button2, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+    else:
+        rl.draw_texture_pro(
+            button2_off_texture,                            
+            rl.Rectangle(0, 0, button_off_texture.width, button_off_texture.height),  
+            button2, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE
+        )
+
+    # Draw button 3
+    if rl.check_collision_recs(flame_knight_rect, button3) or rl.check_collision_recs(ice_wizard_rect, button3):
+        rl.draw_texture_pro(
+            button3_on_texture,                            
+            rl.Rectangle(0, 0, button_on_texture.width, button_on_texture.height),  
+            button3, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+    else:
+        rl.draw_texture_pro(
+            button3_off_texture,                            
+            rl.Rectangle(0, 0, button_off_texture.width, button_off_texture.height),  
+            button3, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE
+        )
+    
+
+    # Draw lever 1
+    if elevator1_active:
+        rl.draw_texture_pro(
+            lever_on_texture,                            
+            rl.Rectangle(0, 0, lever_on_texture.width, lever_on_texture.height),  
+            lever1, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+    else:
+        rl.draw_texture_pro(
+            lever_off_texture,                            
+            rl.Rectangle(0, 0, lever_off_texture.width, lever_off_texture.height),  
+            lever1, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+
+    # Draw lever 2
+    if elevator4_active:
+        rl.draw_texture_pro(
+            lever_on_texture,                            
+            rl.Rectangle(0, 0, lever_on_texture.width, lever_on_texture.height),  
+            lever2, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+    else:
+        rl.draw_texture_pro(
+            lever_off_texture,                            
+            rl.Rectangle(0, 0, lever_off_texture.width, lever_off_texture.height),  
+            lever2, 
+            rl.Vector2(0, 0),                   
+            0,                                  
+            WHITE                            
+        )
+
+    # Draw players
+
+    move_player(flame_knight, True)
+    move_player(ice_wizard, False)
+
+
+
+    # Update vertical movement (gravity effect)
+    flame_knight.speed.y += 0.2
+    ice_wizard.speed.y += 0.2
+
+    
 
     # Collision with standard platforms
     for platform in platforms:
@@ -344,102 +887,265 @@ while not rl.window_should_close():
     flame_knight_reached_goal = rl.check_collision_recs(flame_knight_rect, red_goal)
     ice_wizard_reached_goal = rl.check_collision_recs(ice_wizard_rect, blue_goal)
 
-    # --- Lever and Elevator Logic ---
-    
+   
+    # Lever 1 Logic 
     handle_lever1(flame_knight)
     handle_lever1(ice_wizard)
 
+    # Elevator 1 logic
     update_elevator1(elevator1, elevator1_active)
     handle_platform_collision(flame_knight, elevator1)  # Handle collision with the elevator
     handle_platform_collision(ice_wizard, elevator1)   # Handle collision with the elevator 
 
-    # --- End of Lever and Elevator Logic ---
+
+    # Lever 2 logic
+    handle_lever2(flame_knight)
+    handle_lever2(ice_wizard)
+
+    # Elevator 4 logic
+    elevator4.range_y = 100
+    update_elevator2(elevator4, elevator4_active)
+    handle_platform_collision(flame_knight, elevator4)  # Handle collision with the elevator
+    handle_platform_collision(ice_wizard, elevator4)   # Handle collision with the elevator
     
-    # Hazard collision detection
 
-    
-    for water in waters:
-        rl.draw_rectangle_rec(water.rect, water.color)
+    # Button 1 logic
+    elevator2_active = False 
+    elevator3_active = False
 
-    for water in waters:
-        if rl.check_collision_recs(flame_knight_rect, water.rect):
-            print("Flame Knight touched water! Game Over!")
-            flame_knight.position = rl.Vector2(100, 500) 
-            ice_wizard.position = rl.Vector2(200, 500)
-        elif rl.check_collision_recs(ice_wizard_rect, water.rect):
-            ice_wizard.can_jump = True
-
-    for lava in lavas:
-        rl.draw_rectangle_rec(lava.rect, lava.color)
-
-    for lava in lavas:
-        if rl.check_collision_recs(ice_wizard_rect, lava.rect):
-            print("Ice Wizard touched lava! Game Over!")
-            flame_knight.position = rl.Vector2(100, 500)
-            ice_wizard.position = rl.Vector2(200, 500)
-        elif rl.check_collision_recs(flame_knight_rect, lava.rect):
-            flame_knight.can_jump = True
-    for goo in goos:
-        rl.draw_rectangle_rec(goo.rect, goo.color)
-
-    for goo in goos:
-        if rl.check_collision_recs(flame_knight_rect, goo.rect) or \
-           rl.check_collision_recs(ice_wizard_rect, goo.rect):
-            print("Player touched goo! Game Over!")
-            flame_knight.position = rl.Vector2(100, 500)
-            ice_wizard.position = rl.Vector2(200, 500)
-
-    # Draw everything
-    rl.begin_drawing()
-    rl.clear_background(RAYWHITE)
-
-    # Draw platforms
-    for platform in platforms:
-        rl.draw_rectangle_rec(platform.rect, platform.color)
-
-    # Draw the elevator
-    rl.draw_rectangle_rec(elevator1.rect, elevator1.color)
-
-    # Draw players
-    rl.draw_rectangle_rec(flame_knight_rect, flame_knight.color)
-    rl.draw_rectangle_rec(ice_wizard_rect, ice_wizard.color)
-
-    # Draw goals
-    rl.draw_rectangle_rec(red_goal, RED)
-    rl.draw_rectangle_rec(blue_goal, BLUE)
-
-    # Draw levers
-    rl.draw_rectangle_rec(lever1, DARKGREEN)
-
-    # Draw second elevator
-    rl.draw_rectangle_rec(elevator2.rect, elevator2.color)
-
-    # Draw buttons
-    rl.draw_rectangle_rec(button1, YELLOW)
-    rl.draw_rectangle_rec(button2, YELLOW)
-
-    # Button Handling
-    elevator2_active = False
-
-# Check each player for collisions with buttons
     if handle_buttons(button1, flame_knight) or handle_buttons(button1, ice_wizard):
-        elevator2_active = True
-
-    # Do the same for other buttons if needed, such as button2
-    if handle_buttons(button2, flame_knight) or handle_buttons(button2, ice_wizard):
-        elevator2_active = True
+        if not button1_last_state:  # Check if the button was not pressed before
+            if not interact_sound_played:  # Ensure the sound is played only once
+                rl.play_sound(interact_sound)
+                interact_sound_played = True
+        elevator2_active = True  # Activate the elevator
+        elevator3_active = True
+        button1_last_state = True  # Update button press state
+    else:
+        button1_last_state = False  # Reset state when not pressing the button
+        interact_sound_played = False  # Reset sound flag when button is released
     
+    elevator2.range_y = 125
+    elevator3.range_y = 125
     update_elevator2(elevator2, elevator2_active)
     handle_platform_collision(flame_knight, elevator2)  # Handle collision with the elevator
     handle_platform_collision(ice_wizard, elevator2)
 
+    update_elevator2(elevator3, elevator3_active)
+    handle_platform_collision(flame_knight, elevator3)  # Handle collision with the elevator
+    handle_platform_collision(ice_wizard, elevator3)
+
+    # Button 2 logic
+    elevator5_active = False
+
+    if handle_buttons(button2, flame_knight) or handle_buttons(button2, ice_wizard):
+        if not button2_last_state:  # Check if the button was not pressed before
+            if not interact_sound_played:  # Ensure the sound is played only once
+                rl.play_sound(interact_sound)
+                interact_sound_played = True
+        elevator5_active = True  # Activate the elevator
+        button2_last_state = True  # Update button press state
+    else:
+        button2_last_state = False  # Reset state when not pressing the button
+        interact_sound_played = False  # Reset sound flag when button is released
+
+    elevator5.range_y = 150
+    update_elevator2(elevator5, elevator5_active)
+    handle_platform_collision(flame_knight, elevator5)  # Handle collision with the elevator
+    handle_platform_collision(ice_wizard, elevator5)
+    
+    # Button 3 Logic
+    elevator6_active = False
+
+    if handle_buttons(button3, flame_knight) or handle_buttons(button3, ice_wizard):
+        if not button3_last_state:  # Check if the button was not pressed before
+            if not interact_sound_played:  # Ensure the sound is played only once
+                rl.play_sound(interact_sound)
+                interact_sound_played = True
+        elevator6_active = True  # Activate the elevator
+        button3_last_state = True  # Update button press state
+    else:
+        button3_last_state = False  # Reset state when not pressing the button
+        interact_sound_played = False  # Reset sound flag when button is released
+
+    
+    update_elevator2(elevator6, elevator6_active)
+    handle_platform_collision(flame_knight, elevator6)  # Handle collision with the elevator
+    handle_platform_collision(ice_wizard, elevator6)
+    # Hazard collision detection
+
+    
+    if not show_over:
+
+        for water in waters:
+            if rl.check_collision_recs(flame_knight_rect, water.rect):
+                print("Flame Knight touched water! Game Over!")
+                show_over = True
+
+            elif rl.check_collision_recs(ice_wizard_rect, water.rect):
+                ice_wizard.can_jump = True
+
+
+        for lava in lavas:
+            if rl.check_collision_recs(ice_wizard_rect, lava.rect):
+                print("Ice Wizard touched lava! Game Over!")
+                show_over = True
+            elif rl.check_collision_recs(flame_knight_rect, lava.rect):
+                flame_knight.can_jump = True
+
+
+        for goo in goos:
+            if rl.check_collision_recs(flame_knight_rect, goo.rect) or \
+            rl.check_collision_recs(ice_wizard_rect, goo.rect):
+                print("Player touched goo! Game Over!")
+                show_over = True
+                
+    if show_over:
+        if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button1_x, popup_button1_y, popup_button1_width,
+        popup_button1_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
+            print("Popup Button 1 clicked!")
+            # Do something (e.g., start game as Flame Knight)
+            #global elevator1_active 
+            #global elevator2_active
+            elevator1_active = False
+            elevator2_active = False
+            show_over = False
+            flame_knight.position = rl.Vector2(flame_knight_spawnx, flame_knight_spawny)
+            ice_wizard.position = rl.Vector2(ice_wizard_spawnx, ice_wizard_spawny)
+            
+            #subprocess.run(["python", "level1.py"])
+            
+
+        if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button2_x, popup_button2_y, popup_button2_width, popup_button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
+            print("Popup Button 2 clicked!")
+            # Do something (e.g., start game as Ice Wizard)
+            rl.close_window()
+            subprocess.run(["python", "main.py"])
+            
+            
+
+        popup_rect = rl.Rectangle(popup_x, popup_y, popup_width, popup_height)
+        
+        rl.draw_texture_pro(
+            gameover_texture,
+            rl.Rectangle(0, 0, popup_width, popup_height),
+            popup_rect,
+            rl.Vector2(0, 0),
+            0,
+            WHITE
+        )
+        
+
+    
+
+    
+
+
+
+    popup_x = screen_width // 2 - 150
+    popup_y = screen_height // 2 - 100
+    popup_width = 300
+    popup_height = 300
+
+    # Popup button positions and sizes
+    popup_button1_x = popup_x + 80
+    popup_button1_y = popup_y + 125
+    popup_button1_width = 150
+    popup_button1_height = 50
+
+    popup_button2_x = popup_x + 80
+    popup_button2_y = popup_y + 225
+    popup_button2_width = 150
+    popup_button2_height = 50
+    # Pause Menu
+    mouse_pos = rl.get_mouse_position()
+    if not show_pause:
+        if rl.is_key_down(rl.KEY_P):
+            show_pause = True
+    
+    if show_pause:
+        if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button1_x, popup_button1_y, popup_button1_width,
+        popup_button1_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
+            print("Popup Button 1 clicked!")
+            # Do something (e.g., start game as Flame Knight)
+            #global elevator1_active 
+            #global elevator2_active
+            elevator1_active = False
+            elevator2_active = False
+            show_pause = False
+            rl.end_drawing()
+            #subprocess.run(["python", "level1.py"])
+            
+
+        if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button2_x, popup_button2_y, popup_button2_width, popup_button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
+            print("Popup Button 2 clicked!")
+            # Do something (e.g., start game as Ice Wizard)
+            rl.close_window()
+            subprocess.run(["python", "main.py"])
+            
+            
+
+        popup_rect = rl.Rectangle(popup_x, popup_y, popup_width, popup_height)
+        
+        rl.draw_texture_pro(
+            pause_texture,
+            rl.Rectangle(0, 0, popup_width, popup_height),
+            popup_rect,
+            rl.Vector2(0, 0),
+            0,
+            WHITE
+        )
+
     # Display level complete message
-    if flame_knight_reached_goal and ice_wizard_reached_goal:
-        rl.draw_text("Level Complete!", screen_width // 2 - 100, screen_height // 2, 20, GREEN)
+    if not show_complete:
+        if flame_knight_reached_goal and ice_wizard_reached_goal:
+            show_complete = True
+    
+    if show_complete:
 
-    rl.draw_rectangle_lines(0, 0, screen_width, screen_height, BLACK)
+        # Writing level data
+        level_data = {
+        "level1": True,
+        "level2": True,
+        "level3": False  # Add as many levels as needed
+        }
 
+        write_levels(level_data)
+        
+        if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button1_x, popup_button1_y, popup_button1_width,
+        popup_button1_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
+            print("Popup Button 1 clicked!")
+            # Do something (e.g., start game as Flame Knight)
+            #global elevator1_active 
+            #global elevator2_active
+            elevator1_active = False
+            elevator2_active = False
+            show_complete = False
+            rl.close_window()
+            subprocess.run(["python", "level2.py"])
+            
+
+        if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button2_x, popup_button2_y, popup_button2_width, popup_button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
+            print("Popup Button 2 clicked!")
+            # Do something (e.g., start game as Ice Wizard)
+            rl.close_window()
+            subprocess.run(["python", "main.py"])
+            
+            
+
+        popup_rect = rl.Rectangle(popup_x, popup_y, popup_width, popup_height)
+        
+        rl.draw_texture_pro(
+            complete_texture,
+            rl.Rectangle(0, 0, popup_width, popup_height),
+            popup_rect,
+            rl.Vector2(0, 0),
+            0,
+            WHITE
+        )
+    
     rl.end_drawing()
 
 # Close window
+rl.unload_music_stream(background_music)
 rl.close_window()
