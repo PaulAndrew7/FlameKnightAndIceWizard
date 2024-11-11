@@ -29,7 +29,12 @@ class Elevator:
         self.current_y = rect.y
         self.direction = 1
 
-
+def write_levels(data):
+    filename = "assets/levels.txt"
+    with open(filename, "w") as file:
+        for level, status in data.items():
+            file.write(f"{level} = {str(status).lower()}\n")
+    print("Level data written to file.")
 
 def handle_platform_collision(player, platform):
     player_rect = rl.Rectangle(player.position.x, player.position.y, player.size.x, player.size.y)
@@ -834,6 +839,16 @@ while not rl.window_should_close():
             show_complete = True
     
     if show_complete:
+
+        # Writing level data
+        level_data = {
+        "level1": True,
+        "level2": True,
+        "level3": False  # Add as many levels as needed
+        }
+
+        write_levels(level_data)
+        
         if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button1_x, popup_button1_y, popup_button1_width,
         popup_button1_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             print("Popup Button 1 clicked!")
