@@ -3,6 +3,7 @@ import json
 from raylib.colors import *
 import time
 import subprocess
+from math import fabs
 
 
 class Player:
@@ -15,6 +16,140 @@ class Player:
         self.jump_timer = 0.0
         self.facing_right = True
         self.facing_left = False
+
+
+class Enemy:
+    def __init__(self, position, size, detection_range_size, color, speed):
+        self.position = position
+        self.size = size
+        self.detection_range_size = detection_range_size
+        self.detection_range_position = rl.Vector2(
+            position.x - (detection_range_size.x - size.x) / 2, position.y - (detection_range_size.y - size.y) / 2)
+        self.color = color
+        self.speed = rl.Vector2(speed, speed)
+        self.active = False
+        self.gravity = 0.5
+        self.openeyes = True
+
+    def update(self, flame_knight, ice_wizard):
+        # Update detection range position to stay above the enemy
+        self.detection_range_position.x = self.position.x - \
+            (self.detection_range_size.x - self.size.x) / 2
+        self.detection_range_position.y = (
+            self.position.y - (self.detection_range_size.y - self.size.y) / 2) - 10
+
+        # Gravity
+        self.speed.y += self.gravity
+        self.position.y += self.speed.y
+
+        # Platform Collision Handling
+        for platform in platforms:
+            handle_platform_collision(self, platform)
+
+        # Elevator collision handling
+        handle_platform_collision(self, elevator1)
+        handle_platform_collision(self, elevator2)
+        handle_platform_collision(self, elevator3)
+        handle_platform_collision(self, elevator4)
+        handle_platform_collision(self, elevator5)
+        handle_platform_collision(self, elevator6)
+
+        # Check if players are in detection range
+        flame_knight_in_range = rl.check_collision_recs(
+            rl.Rectangle(self.detection_range_position.x, self.detection_range_position.y,
+                         self.detection_range_size.x, self.detection_range_size.y),
+            rl.Rectangle(flame_knight.position.x, flame_knight.position.y,
+                         flame_knight.size.x, flame_knight.size.y)
+        )
+
+        ice_wizard_in_range = rl.check_collision_recs(
+            rl.Rectangle(self.detection_range_position.x, self.detection_range_position.y,
+                         self.detection_range_size.x, self.detection_range_size.y),
+            rl.Rectangle(ice_wizard.position.x, ice_wizard.position.y,
+                         ice_wizard.size.x, ice_wizard.size.y)
+        )
+
+        # Activate if any player is in detection range
+        if not self.active:
+            self.active = flame_knight_in_range or ice_wizard_in_range
+
+        # Calculate distances to each player
+        dist_flame_knight = abs(self.position.x - flame_knight.position.x) + \
+            abs(self.position.y - flame_knight.position.y)
+        dist_ice_wizard = abs(self.position.x - ice_wizard.position.x) + \
+            abs(self.position.y - ice_wizard.position.y)
+
+        # Choose the closest player
+        target_player = flame_knight if dist_flame_knight < dist_ice_wizard else ice_wizard
+
+        # Only move if active, player is outside detection range, and player's y-position is in range
+        if self.active and (self.position.y >= target_player.position.y >= self.position.y - 50):
+            if self.position.x < target_player.position.x:
+                if not target_player.facing_left:
+                    self.position.x += self.speed.x
+                    self.openeyes = True
+                else:
+                    self.openeyes = False
+            elif self.position.x > target_player.position.x:
+                if target_player.facing_left:
+                    self.position.x -= self.speed.x
+                    self.openeyes = True
+                else:
+                    self.openeyes = False
+        self.rect = rl.Rectangle(
+            self.position.x, self.position.y, self.size.x, self.size.y)
+        if rl.check_collision_recs(flame_knight_rect, self.rect) or rl.check_collision_recs(ice_wizard_rect, self.rect):
+            global show_over
+            show_over = True
+
+    def draw(self):
+        # Draw enemy structure
+        if self.active:
+            if self.openeyes:
+                rl.draw_texture_pro(
+                    enemy_active_texture,
+                    rl.Rectangle(0, 0, enemy_active_texture.width,
+                                 enemy_active_texture.height),
+                    rl.Rectangle(self.position.x, self.position.y,
+                                 self.size.x, self.size.y),
+                    rl.Vector2(0, 0),
+                    0,
+                    WHITE
+                )
+            else:
+                rl.draw_texture_pro(
+                    enemy_inactive_texture,
+                    rl.Rectangle(0, 0, enemy_inactive_texture.width,
+                                 enemy_inactive_texture.height),
+                    rl.Rectangle(self.position.x, self.position.y,
+                                 self.size.x, self.size.y),
+                    rl.Vector2(0, 0),
+                    0,
+                    WHITE
+                )
+        else:
+            rl.draw_texture_pro(
+                enemy_inactive_texture,
+                rl.Rectangle(0, 0, enemy_inactive_texture.width,
+                             enemy_inactive_texture.height),
+                rl.Rectangle(self.position.x, self.position.y,
+                             self.size.x, self.size.y),
+                rl.Vector2(0, 0),
+                0,
+                WHITE
+            )
+
+        # Draw detection range (optional for debugging)
+        """rl.draw_rectangle_lines_ex(
+            rl.Rectangle(self.detection_range_position.x, self.detection_range_position.y, 
+                         self.detection_range_size.x, self.detection_range_size.y), 1, rl.RED
+        )"""
+
+
+enemy1 = Enemy(rl.Vector2(400, 300), rl.Vector2(
+    30, 30), rl.Vector2(200, 60), rl.RED, 1)
+enemy2 = Enemy(rl.Vector2(450, 350), rl.Vector2(
+    30, 30), rl.Vector2(200, 60), rl.RED, 1)
 
 
 class Platform:
@@ -211,14 +346,15 @@ ice_wizard_texture2 = rl.load_texture("assets/characters/icewizard2.png")
 pause_texture = rl.load_texture("assets/menus/pause.png")
 complete_texture = rl.load_texture("assets/menus/complete.png")
 gameover_texture = rl.load_texture("assets/menus/gameover.png")
-
+enemy_inactive_texture = rl.load_texture("assets/textures/enemy_inactive.png")
+enemy_active_texture = rl.load_texture("assets/textures/enemy_active.png")
 # Animation Speed for characters
 animation_speed = 10
 
 # Audio
 rl.init_audio_device()
 background_music = rl.load_music_stream("assets/sounds/level1.mp3")
-rl.set_music_volume(background_music, 0.3)
+rl.set_music_volume(background_music, 0.9)
 rl.play_music_stream(background_music)
 
 # Sound Effects
@@ -705,27 +841,6 @@ while not rl.window_should_close():
     rl.begin_drawing()
     rl.clear_background(RAYWHITE)
 
-    # Draw hazards
-    for water in waters:
-        rl.draw_rectangle_rec(water.rect, water.color)
-
-    for lava in lavas:
-        rl.draw_rectangle_rec(lava.rect, lava.color)
-
-    for goo in goos:
-        rl.draw_rectangle_rec(goo.rect, goo.color)
-
-    # Draw platforms
-    for platform in platforms:
-        rl.draw_rectangle_rec(platform.rect, platform.color)
-
-    # Draw goals
-    rl.draw_rectangle_rec(red_goal, RED)
-    rl.draw_rectangle_rec(blue_goal, BLUE)
-
-    # Draw boundary lines
-    rl.draw_rectangle_lines(0, 0, screen_width, screen_height, BLACK)
-
     # Draw level texture
     rl.draw_texture(level2_texture, 0, 0, WHITE)
 
@@ -908,7 +1023,13 @@ while not rl.window_should_close():
             WHITE
         )
 
-    # Draw players
+    enemy1.update(flame_knight, ice_wizard)
+    enemy1.draw()
+
+    enemy2.update(flame_knight, ice_wizard)
+    enemy2.draw()
+
+    # Draw and move players
     move_player(flame_knight, True)
     move_player(ice_wizard, False)
 
@@ -973,8 +1094,8 @@ while not rl.window_should_close():
         button1_last_state = False  # Reset state when not pressing the button
         interact_sound_played = False  # Reset sound flag when button is released
 
-    elevator2.range_y = 125
-    elevator3.range_y = 125
+    elevator2.range_y = 100
+    elevator3.range_y = 100
     update_elevator2(elevator2, elevator2_active)
 
     # Handle collision with the elevator
@@ -1057,6 +1178,10 @@ while not rl.window_should_close():
                                                                 popup_button1_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             print("Retry")
 
+            enemy1 = Enemy(rl.Vector2(400, 300), rl.Vector2(
+                30, 30), rl.Vector2(200, 60), rl.RED, 1)
+            enemy2 = Enemy(rl.Vector2(450, 350), rl.Vector2(
+                30, 30), rl.Vector2(200, 60), rl.RED, 1)
             # Reset elevators
             elevator1_active = False
             elevator2_active = False
@@ -1064,6 +1189,9 @@ while not rl.window_should_close():
             elevator4_active = False
             elevator5_active = False
             elevator6_active = False
+
+            enemy1.active = False
+            enemy2.active = False
 
             show_over = False
             flame_knight.position = rl.Vector2(
@@ -1113,7 +1241,10 @@ while not rl.window_should_close():
         if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(popup_button1_x, popup_button1_y, popup_button1_width,
                                                                 popup_button1_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
             print("Retry")
-
+            enemy1 = Enemy(rl.Vector2(400, 300), rl.Vector2(
+                30, 30), rl.Vector2(200, 60), rl.RED, 1)
+            enemy2 = Enemy(rl.Vector2(450, 350), rl.Vector2(
+                30, 30), rl.Vector2(200, 60), rl.RED, 1)
             # Reset elevators
             elevator1_active = False
             elevator2_active = False
@@ -1122,6 +1253,8 @@ while not rl.window_should_close():
             elevator5_active = False
             elevator6_active = False
 
+            enemy1.active = False
+            enemy2.active = False
             show_pause = False
             rl.end_drawing()
 

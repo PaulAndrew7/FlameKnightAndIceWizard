@@ -48,7 +48,7 @@ while not rl.window_should_close():
 
     if rl.check_collision_point_rec(mouse_pos, rl.Rectangle(button2_x, button2_y, button2_width, button2_height)) and rl.is_mouse_button_pressed(rl.MOUSE_BUTTON_LEFT):
         print("Button 2 clicked!")
-        r1.close_window()
+        rl.close_window()
         # Go to options or do something
 
     # Draw main menu buttons

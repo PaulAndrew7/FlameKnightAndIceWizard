@@ -13,7 +13,6 @@ class Player:
         self.color = color
         self.can_jump = True
         self.jump_timer = 0.0
-        self.facing_right = True
         self.facing_left = False
 
 
@@ -188,7 +187,7 @@ animation_speed = 10
 # Audio
 rl.init_audio_device()
 background_music = rl.load_music_stream("assets/sounds/level1.mp3")
-rl.set_music_volume(background_music, 0.3)
+rl.set_music_volume(background_music, 0.8)
 rl.play_music_stream(background_music)
 
 # Sound effects
@@ -198,10 +197,6 @@ interact_sound = rl.load_sound("assets/sounds/interact.ogg")
 interact_sound_played = False
 button1_last_state = False
 button2_last_state = False
-
-
-# Set volume
-rl.set_music_volume(background_music, 0.8)
 
 
 # Popup Window statuses
@@ -543,27 +538,6 @@ while not rl.window_should_close():
     # Begin Drawing
     rl.begin_drawing()
     rl.clear_background(RAYWHITE)
-
-    # Draw hazards
-    for water in waters:
-        rl.draw_rectangle_rec(water.rect, water.color)
-
-    for lava in lavas:
-        rl.draw_rectangle_rec(lava.rect, lava.color)
-
-    for goo in goos:
-        rl.draw_rectangle_rec(goo.rect, goo.color)
-
-    # Draw platforms
-    for platform in platforms:
-        rl.draw_rectangle_rec(platform.rect, platform.color)
-
-    # Draw goals
-    rl.draw_rectangle_rec(red_goal, RED)
-    rl.draw_rectangle_rec(blue_goal, BLUE)
-
-    # Draw boundary lines
-    rl.draw_rectangle_lines(0, 0, screen_width, screen_height, BLACK)
 
     # Draw level texture
     rl.draw_texture(level1_texture, 0, 0, WHITE)
